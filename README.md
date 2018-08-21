@@ -1,0 +1,2 @@
+# tacorn
+Tacotron + WaveRNN synthesis
