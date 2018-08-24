@@ -309,7 +309,7 @@ class Model(nn.Module) :
                 if i % 100 == 0 :
                     speed = int((i + 1) / (time.time() - start))
                     #display('%i/%i -- Speed: %i samples/sec', (i + 1, seq_len, speed))
-                    print('%i/%i -- Speed: %i samples/sec', (i + 1, seq_len, speed))
+                    print('%i/%i -- Speed: %i samples/sec' % (i + 1, seq_len, speed))
         output = torch.stack(output).cpu().numpy()
         librosa.output.write_wav(save_path, output, sample_rate)
         self.train()
@@ -429,7 +429,7 @@ def train(model, optimiser, epochs, batch_size, classes, seq_len, step, lr=1e-4)
             
             step += 1
             k = step // 1000
-            print('Epoch: %i/%i -- Batch: %i/%i -- Loss: %.3f -- Speed: %.2f steps/sec -- Step: %ik ', 
+            print('Epoch: %i/%i -- Batch: %i/%i -- Loss: %.3f -- Speed: %.2f steps/sec -- Step: %ik ' % 
                    (e + 1, epochs, i + 1, iters, avg_loss, speed, k))
             
         # generate sample
