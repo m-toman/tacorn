@@ -16,30 +16,21 @@ import numpy as np
 from utils import *
 from dsp import *
 
-
-# In[2]:
-
-
 bits = 9
 model_name = 'nb5'
-
-
-# In[40]:
-
-# Point SEG_PATH to a folder containing your training wavs 
-# Doesn't matter if it's LJspeech, CMU Arctic etc. it should work fine
-SEG_PATH = '/home/mtoman/Tacotron-2/LJSpeech-1.1/wavs' 
 
 DATA_PATH = f'data/{model_name}/'
 
 if not os.path.exists(DATA_PATH):
     os.makedirs(DATA_PATH)
 
-
-# In[41]:
 GTA = True
 
 if not GTA:
+    # Point SEG_PATH to a folder containing your training wavs 
+    # Doesn't matter if it's LJspeech, CMU Arctic etc. it should work fine
+    SEG_PATH = '/home/mtoman/Tacotron-2/LJSpeech-1.1/wavs' 
+
     def get_files(path, extension='.wav') :
         filenames = []
         for filename in glob.iglob(f'{path}/**/*{extension}', recursive=True):
@@ -89,8 +80,11 @@ if not GTA:
     with open(DATA_PATH + 'dataset_ids.pkl', 'wb') as f:
         pickle.dump(dataset_ids, f)
 
-else:
 # GTA processing
+else:
+    AUDIO_PATH = "/mnt/working/markus/tacorn/Tacotron-2/training_data/audio/"
+    GTA_MEL_PATH = "/mnt/working/markus/tacorn/Tacotron-2/training_data/mel/"
+
     def get_files(path, extension='.wav') :
         filenames = []
         for filename in glob.iglob(f'{path}/**/*{extension}', recursive=True):
@@ -98,17 +92,19 @@ else:
         return sorted(filenames)
 
     audio_files = get_files(AUDIO_PATH, extension=".npy")
-    mel_files = get_files(MEL_PATH, extension=".npy")
-    print ((audio_files[0].split('/')[-1][:-4], mel_files[0].split('/')[-1][:-4]))
+    mel_files = get_files(GTA_MEL_PATH, extension=".npy")
+    #print ((audio_files[0].split('/')[-1][:-4], mel_files[0].split('/')[-1][:-4]))
 
-    def convert_gta_file(audio_path, mel_path):
-        audio = np.load(audio_path)
+    def convert_gta_mel(mel_path):
         mel = np.load(mel_path).T
+        return mel.astype(np.float32)
+
+    def convert_gta_audio(audio_path):
+        audio = np.load(audio_path)
         quant = (audio + 1.) * (2**bits - 1) / 2
-        return mel.astype(np.float32), quant.astype(np.int)
+        return quant.astype(np.int)
 
-    m, x = convert_gta_file(audio_files[0], mel_files[0])
-
+    #m, x = convert_gta_file(audio_files[0], mel_files[0])
     #plot_spec(m)
     #plot(x)
 
@@ -126,7 +122,8 @@ else:
         mel_id = path[1].split('/')[-1][4:-4]
         assert(mel_id == audio_id)
         dataset_ids += [audio_id]
-        m, x = convert_gta_file(path[0], path[1])
+        x = convert_gta_audio(path[0])
+        m = convert_gta_mel(path[1])
         np.save(f'{MEL_PATH}{mel_id}.npy', m)
         np.save(f'{QUANT_PATH}{audio_id}.npy', x)
         print('%i/%i : audio: %s mel: %s', (i + 1, len(audio_files), audio_id, mel_id))
