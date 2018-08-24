@@ -306,7 +306,7 @@ class Model(nn.Module) :
                 sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
                 output.append(sample)
                 x = torch.FloatTensor([[sample]]).cuda()
-                if i % 100 == 0 :
+                if i % 5000 == 0 :
                     speed = int((i + 1) / (time.time() - start))
                     #display('%i/%i -- Speed: %i samples/sec', (i + 1, seq_len, speed))
                     print('%i/%i -- Speed: %i samples/sec' % (i + 1, seq_len, speed))
@@ -381,6 +381,7 @@ def generate(samples=3, step=step) :
     k = step // 1000
     test_mels = [np.load(f'{DATA_PATH}mel/{id}.npy') for id in test_ids[:samples]]
     ground_truth = [np.load(f'{DATA_PATH}quant/{id}.npy') for id in test_ids[:samples]]
+    print("test_ids: " + str(test_ids[:samples]))
     for i, (gt, mel) in enumerate(zip(ground_truth, test_mels)) :
         print('\nGenerating: %i/%i' % (i+1, samples))
         gt = 2 * gt.astype(np.float32) / (2**bits - 1.) - 1.
@@ -460,7 +461,7 @@ train(model, optimiser, epochs=900, batch_size=16, classes=2**bits,
 # In[ ]:
 
 
-generate()
+#generate()
 
 
 # In[ ]:
