@@ -29,15 +29,15 @@ from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from utils import *
-from dsp import *
+from .utils import *
+from .dsp import *
 
 
 bits = 9
 seq_len = hop_length * 5
 seq_len
 
-model_name = 'nb5'
+model_name = 'tacorn_wavernn'
 model_checkpoints = "model_checkpoints"
 model_outputs = "model_outputs"
 

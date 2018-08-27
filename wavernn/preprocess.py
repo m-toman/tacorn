@@ -13,11 +13,11 @@
 import matplotlib.pyplot as plt
 import math, pickle, os, glob
 import numpy as np
-from utils import *
-from dsp import *
+from .utils import *
+from .dsp import *
 
 bits = 9
-model_name = 'nb5'
+model_name = 'tacorn_wavernn'
 
 DATA_PATH = f'data/{model_name}/'
 
@@ -75,15 +75,15 @@ if not GTA:
         m, x = convert_file(path)
         np.save(f'{MEL_PATH}{id}.npy', m)
         np.save(f'{QUANT_PATH}{id}.npy', x)
-        print('%i/%i', (i + 1, len(wav_files)))
+        print('%i/%i' % (i + 1, len(wav_files)))
 
     with open(DATA_PATH + 'dataset_ids.pkl', 'wb') as f:
         pickle.dump(dataset_ids, f)
 
 # GTA processing
 else:
-    AUDIO_PATH = "/mnt/working/markus/tacorn/Tacotron-2/training_data/audio/"
-    GTA_MEL_PATH = "/mnt/working/markus/tacorn/Tacotron-2/training_data/mel/"
+    AUDIO_PATH = "Tacotron-2/training_data/audio/"
+    GTA_MEL_PATH = "Tacotron-2/tacotron_output/gta/"
 
     def get_files(path, extension='.wav') :
         filenames = []
@@ -124,9 +124,9 @@ else:
         dataset_ids += [audio_id]
         x = convert_gta_audio(path[0])
         m = convert_gta_mel(path[1])
-        np.save(f'{MEL_PATH}{mel_id}.npy', m)
         np.save(f'{QUANT_PATH}{audio_id}.npy', x)
-        print('%i/%i : audio: %s mel: %s', (i + 1, len(audio_files), audio_id, mel_id))
+        np.save(f'{MEL_PATH}{mel_id}.npy', m)
+        print('%i/%i : audio: %s mel: %s' % (i + 1, len(audio_files), audio_id, mel_id))
     dataset_ids_unique = list(set(dataset_ids))
 
     with open(DATA_PATH + 'dataset_ids.pkl', 'wb') as f:

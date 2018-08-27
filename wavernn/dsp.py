@@ -1,9 +1,9 @@
 import numpy as np
 import librosa, math
 
-#sample_rate = 22050
+sample_rate = 22050
 # Taco settings, TODO: get settings directly from taco params
-sample_rate = 24000
+#+sample_rate = 24000
 n_fft = 2048
 fft_bins = n_fft // 2 + 1
 num_mels = 80
