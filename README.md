@@ -32,7 +32,7 @@ python3 train.py
 
 ## Pre-trained models
 
-LJ dataset, Tacotron, 80k steps: https://www.dropbox.com/sh/z3nnetvyrsq9cip/AABXTGSl-P3dXJDIt6JpS8Eia?dl=0
+- LJ dataset, Tacotron, 80k steps: https://www.dropbox.com/sh/z3nnetvyrsq9cip/AABXTGSl-P3dXJDIt6JpS8Eia?dl=0
 (extract in tacorn/Tacotron-2)
-LJ dataset, WaveRNN, 720k steps: https://www.dropbox.com/sh/ruq9elymhh9cyjl/AAD8u_PefFz_qwiAckqwqGzwa?dl=0
+- LJ dataset, WaveRNN, 720k steps: https://www.dropbox.com/sh/ruq9elymhh9cyjl/AAD8u_PefFz_qwiAckqwqGzwa?dl=0
 (extract in tacorn/model_checkpoints)
