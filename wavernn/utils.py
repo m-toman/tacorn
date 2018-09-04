@@ -2,6 +2,16 @@ import matplotlib.pyplot as plt
 import time, sys, math
 import numpy as np
 
+model_name = 'tacorn_wavernn'
+model_checkpoints = "model_checkpoints"
+model_outputs = "model_outputs"
+
+MODEL_PATH = f'{model_checkpoints}/{model_name}.pyt'
+DATA_PATH = f'data/{model_name}/'
+STEP_PATH = f'model_checkpoints/{model_name}_step.npy'
+GEN_PATH = f'model_outputs/{model_name}/'
+
+
 def display(string, variables) :
     sys.stdout.write(f'\r{string}' % variables)
     

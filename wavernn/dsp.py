@@ -12,6 +12,8 @@ win_length = int(sample_rate * 0.05)   # 50ms
 fmin = 40
 min_level_db = -100
 ref_level_db = 20
+seq_len = hop_length * 5
+
 
 def load_wav(filename, encode=True) :
     x = librosa.load(filename, sr=sample_rate)[0]

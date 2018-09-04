@@ -9,9 +9,12 @@ from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from utils import *
-from dsp import *
+from .utils import *
+from .dsp import *
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+bits = 9
 
 class ResBlock(nn.Module):
     def __init__(self, dims):
@@ -116,8 +119,8 @@ class Model(nn.Module):
 
     def forward(self, x, mels):
         bsize = x.size(0)
-        h1 = torch.zeros(1, bsize, self.rnn_dims).cuda()
-        h2 = torch.zeros(1, bsize, self.rnn_dims).cuda()
+        h1 = torch.zeros(1, bsize, self.rnn_dims).to(device)
+        h2 = torch.zeros(1, bsize, self.rnn_dims).to(device)
         mels, aux = self.upsample(mels)
 
         aux_idx = [self.aux_dims * i for i in range(5)]
@@ -156,11 +159,11 @@ class Model(nn.Module):
 
         with torch.no_grad():
             start = time.time()
-            x = torch.zeros(1, 1).cuda()
-            h1 = torch.zeros(1, self.rnn_dims).cuda()
-            h2 = torch.zeros(1, self.rnn_dims).cuda()
+            x = torch.zeros(1, 1).to(device)
+            h1 = torch.zeros(1, self.rnn_dims).to(device)
+            h2 = torch.zeros(1, self.rnn_dims).to(device)
 
-            mels = torch.FloatTensor(mels).cuda().unsqueeze(0)
+            mels = torch.FloatTensor(mels).to(device).unsqueeze(0)
             mels, aux = self.upsample(mels)
 
             aux_idx = [self.aux_dims * i for i in range(5)]
@@ -198,7 +201,7 @@ class Model(nn.Module):
                 distrib = torch.distributions.Categorical(posterior)
                 sample = 2 * distrib.sample().float() / (self.n_classes - 1.) - 1.
                 output.append(sample)
-                x = torch.FloatTensor([[sample]]).cuda()
+                x = torch.FloatTensor([[sample]]).to(device)
                 if i % 100 == 0:
                     speed = int((i + 1) / (time.time() - start))
                     display('%i/%i -- Speed: %i samples/sec',
