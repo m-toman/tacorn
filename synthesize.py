@@ -5,6 +5,9 @@ import librosa
 import sys
 from collections import namedtuple
 
+import matplotlib
+matplotlib.use('Agg')
+
 from wavernn.model import Model
 from wavernn.model import bits
 from wavernn.utils import *

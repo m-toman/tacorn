@@ -80,15 +80,13 @@ def collate(batch):
     return x_input, mels, y_coarse
 
 
-
-def _generate(step, samples=3):
+def _generate(model, step, test_ids, samples=3):
     outputs = []
     k = step // 1000
     test_mels = [np.load(f'{DATA_PATH}mel/{id}.npy')
                  for id in test_ids[:samples]]
     ground_truth = [np.load(f'{DATA_PATH}quant/{id}.npy')
                     for id in test_ids[:samples]]
-    print("test_ids: " + str(test_ids[:samples]))
     for i, (gt, mel) in enumerate(zip(ground_truth, test_mels)):
         print('\nGenerating: %i/%i' % (i+1, samples))
         gt = 2 * gt.astype(np.float32) / (2**bits - 1.) - 1.
@@ -99,7 +97,7 @@ def _generate(step, samples=3):
     return outputs
 
 
-def _train(model, dataset, optimiser, epochs, batch_size, classes, seq_len, step, lr=1e-4):
+def _train(model, dataset, test_ids, optimiser, epochs, batch_size, classes, seq_len, step, lr=1e-4):
 
     loss_threshold = 4.0
 
@@ -143,7 +141,7 @@ def _train(model, dataset, optimiser, epochs, batch_size, classes, seq_len, step
 
         # generate sample
         if e % 20 == 0:
-            _generate(step=step, samples=1)
+            _generate(model=model, step=step, test_ids=test_ids, samples=1)
 
         torch.save(model.state_dict(), MODEL_PATH)
         np.save(STEP_PATH, [step])
@@ -201,7 +199,7 @@ def train(cfg):
 
     optimiser = optim.Adam(model.parameters())
 
-    _train(model, dataset, optimiser, epochs=1000, batch_size=16, classes=2**bits,
+    _train(model, dataset, test_ids, optimiser, epochs=1000, batch_size=16, classes=2**bits,
            seq_len=seq_len, step=step, lr=1e-4)
 
     # ## Generate Samples

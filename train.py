@@ -1,4 +1,5 @@
 import os
+import sys
 import tacorn.fileutils as fu
 import config
 import wavernn.train
@@ -46,6 +47,9 @@ def main():
     pretrained_model = "LJ"
     workdir = "workdir"
     cfg = config.Configuration()
+
+    print ("This script is not functional yet, please use train.sh")
+    sys.exit(1)
     
     cfg.paths = create_workdir_structure(workdir)
 
