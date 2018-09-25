@@ -1,20 +1,23 @@
 # tacorn
 Tacotron + WaveRNN synthesis
 
-WARNING: Work in progress
-This is extremely messy as I gradually integrate the jupyter notebooks from https://github.com/fatchord/WaveRNN into the codebase.
+WARNING: This is experimental, messy and will most likely not be developed further.
 
-Makes use of:
+Combines:
  - https://github.com/fatchord/WaveRNN
  - https://github.com/Rayhane-mamah/Tacotron-2
 
  So the requirements from those have to be fulfilled until we have a merged requirements.txt.
-
  You'll at least need python3, PyTorch 0.4.1, Tensorflow >= 1.9.0 and librosa.
+
+## Samples
+
+- German: https://www.dropbox.com/s/6b90kuj5ce3mogr/de_1_generated.wav?dl=0
+- English: https://www.dropbox.com/s/szrkknthxoj3znl/en_1_generated.wav?dl=0
 
 ## Synthesis
 
-If you just want to synthesize from the pre-trained models, currently you just have to run
+If you just want to synthesize from the pre-trained (English, LJ) models, currently you just have to run
 
 ```
 bash install.sh
@@ -41,9 +44,7 @@ Please note that the install.sh script pulling a pre-trained model is just a tem
 
 ## Training
 
-At the moment, install.sh grabs pre-trained models from the LJ dataset (https://keithito.com/LJ-Speech-Dataset/), so you don't necessarily have to do this step.
-Next iterations of this repository will give the option to download a pre-trained model or start from scratch.
-Also, the training process will be controlled by ./train.py instead of manually calling Tacotron and WaveRNN training scripts
+install.sh grabs pre-trained models from the LJ dataset (https://keithito.com/LJ-Speech-Dataset/), so you don't necessarily have to do this step.
 
 To continue training on the LJ dataset, or start from scratch:
 ```
