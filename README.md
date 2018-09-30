@@ -1,14 +1,8 @@
 # tacorn
-Tacotron + WaveRNN synthesis
+
+This repository combines the Tacotron-2 implementation of Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with the WaveRNN-inspired method by fatchord (https://github.com/fatchord/WaveRNN).
 
 WARNING: This is experimental, messy and will most likely not be developed further.
-
-Combines:
- - https://github.com/fatchord/WaveRNN
- - https://github.com/Rayhane-mamah/Tacotron-2
-
- So the requirements from those have to be fulfilled until we have a merged requirements.txt.
- You'll at least need python3, PyTorch 0.4.1, Tensorflow >= 1.9.0 and librosa.
 
 ## Samples
 
