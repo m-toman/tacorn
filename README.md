@@ -1,6 +1,7 @@
 # tacorn
 
 WARNING1: The pre-trained models are (yet again) not compatible with the latest version of Rayhane-mamah's Tacotron2 repository.
+
 WARNING2: This is experimental, messy and will most likely not be developed further.
 
 This repository combines the Tacotron-2 implementation of Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with the WaveRNN-inspired (but heavily diverged) method by fatchord (https://github.com/fatchord/WaveRNN).
