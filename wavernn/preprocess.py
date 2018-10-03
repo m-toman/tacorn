@@ -29,7 +29,7 @@ GTA = True
 if not GTA:
     # Point SEG_PATH to a folder containing your training wavs 
     # Doesn't matter if it's LJspeech, CMU Arctic etc. it should work fine
-    SEG_PATH = '/home/mtoman/Tacotron-2/LJSpeech-1.1/wavs' 
+    SEG_PATH = 'TODO' 
 
     def get_files(path, extension='.wav') :
         filenames = []
@@ -82,8 +82,8 @@ if not GTA:
 
 # GTA processing
 else:
-    AUDIO_PATH = "Tacotron-2/training_data/audio/"
-    GTA_MEL_PATH = "Tacotron-2/tacotron_output/gta/"
+    AUDIO_PATH = "tacotron2/training_data/audio/"
+    GTA_MEL_PATH = "tacotron2/tacotron_output/gta/"
 
     def get_files(path, extension='.wav') :
         filenames = []
