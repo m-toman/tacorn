@@ -32,6 +32,8 @@ def synthesize(sentences, output_dir):
     args.checkpoint = "pretrained/"
     args.output_dir = "output"
     args.mels_dir = "tacotron_output/eval"
+    args.base_dir = ''
+    args.input_dir = 'training_data/'
     args.hparams = ''
     args.name = "Tacotron-2"
     taco_checkpoint, _, hparams = prepare_run(args)
