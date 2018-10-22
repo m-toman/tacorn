@@ -34,6 +34,7 @@ def synthesize(sentences, output_dir):
     args.mels_dir = "tacotron_output/eval"
     args.hparams = ''
     args.name = "Tacotron-2"
+    args.log_dir = None
     taco_checkpoint, _, hparams = prepare_run(args)
     taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
     tacotron_synthesize(args, hparams, taco_checkpoint, sentences)

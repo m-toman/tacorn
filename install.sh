@@ -1,7 +1,7 @@
 #!/bin/bash
 
-git clone https://github.com/Rayhane-mamah/Tacotron-2 tacotron2
-cp config/hparams.py tacotron2/hparams.py
+git clone https://github.com/m-toman/Tacotron-2 tacotron2
+#cp config/hparams.py tacotron2/hparams.py
 touch tacotron2/__init__.py
 
 # get pretrained model
