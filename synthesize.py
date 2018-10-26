@@ -23,7 +23,7 @@ from tacotron.synthesize import tacotron_synthesize
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def synthesize(sentences, output_dir):
+def synthesize(sentences, output_dir, isSentenceFile=False):
     # Tacotron first
     args = namedtuple(
         "tacoargs", "mode model checkpoint output_dir mels_dir hparams name".split())
@@ -51,16 +51,25 @@ def synthesize(sentences, output_dir):
     print("Loading WaveRNN model from " + MODEL_PATH)
     model.load_state_dict(torch.load(MODEL_PATH))
 
-    mels_paths = [f for f in sorted(
-        os.listdir(args.mels_dir)) if f.endswith(".npy")]
-    test_mels = [np.load(os.path.join(args.mels_dir, m)).T for m in mels_paths]
+
+    # mels_paths = [f for f in sorted(
+    #     os.listdir(args.mels_dir)) if f.endswith(".npy")]
+    map_path = os.path.join(args.mels_dir, 'map.txt')
+    f = open(map_path)
+    maps = f.readlines()
+    print(maps)
+    mels_paths = [x.split('|')[1] for x in maps]
+    f.close()
+    if isSentenceFile:
+        test_mels = [np.load(m).T for m in mels_paths]
+    else:
+        test_mels = [np.load(os.path.join(args.mels_dir, m)).T for m in mels_paths]
 
     fu.ensure_dir(output_dir)
 
     for i, mel in enumerate(test_mels):
         print('\nGenerating: %i/%i' % (i+1, len(test_mels)))
         model.generate(mel, output_dir + f'/{i}_generated.wav')
-
 
 def main():
     # TODO: use custom workdir directory etc. instead of
@@ -71,15 +80,18 @@ def main():
     parser.add_argument('--output_dir', default="synthesized_wavs",
                         help='Output folder for synthesized wavs')
     args = parser.parse_args()
+    isSentenceFile = False
 
     if args.sentences_file is None:
         sentences = ["Hello, World!",
                      "How much wood would a woodchuck chuck if a woodchuck could chuck wood?"]
+
     else:
         with open(args.sentences_file, 'rt') as fp:
-            sentences = fp.readlines()
+            sentences = [x.strip() for x in fp.readlines()]
+        isSentenceFile = True
 
-    synthesize(sentences, args.output_dir)
+    synthesize(sentences, args.output_dir, isSentenceFile )
 
 
 if __name__ == '__main__':
