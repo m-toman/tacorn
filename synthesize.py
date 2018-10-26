@@ -23,7 +23,7 @@ from tacotron.synthesize import tacotron_synthesize
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def synthesize(sentences, output_dir, isSentenceFile=False):
+def synthesize(sentences, output_dir):
     # Tacotron first
     args = namedtuple(
         "tacoargs", "mode model checkpoint output_dir mels_dir hparams name".split())
@@ -57,13 +57,10 @@ def synthesize(sentences, output_dir, isSentenceFile=False):
     map_path = os.path.join(args.mels_dir, 'map.txt')
     f = open(map_path)
     maps = f.readlines()
-    print(maps)
     mels_paths = [x.split('|')[1] for x in maps]
     f.close()
-    if isSentenceFile:
-        test_mels = [np.load(m).T for m in mels_paths]
-    else:
-        test_mels = [np.load(os.path.join(args.mels_dir, m)).T for m in mels_paths]
+    test_mels = [np.load(m).T for m in mels_paths]
+
 
     fu.ensure_dir(output_dir)
 
@@ -91,7 +88,7 @@ def main():
             sentences = [x.strip() for x in fp.readlines()]
         isSentenceFile = True
 
-    synthesize(sentences, args.output_dir, isSentenceFile )
+    synthesize(sentences, args.output_dir)
 
 
 if __name__ == '__main__':
