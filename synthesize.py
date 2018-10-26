@@ -32,6 +32,8 @@ def synthesize(sentences, output_dir):
     args.checkpoint = "pretrained/"
     args.output_dir = "output"
     args.mels_dir = "tacotron_output/eval"
+    args.base_dir = ''
+    args.input_dir = 'training_data/'
     args.hparams = ''
     args.name = "Tacotron-2"
     args.log_dir = None
@@ -50,16 +52,23 @@ def synthesize(sentences, output_dir):
     print("Loading WaveRNN model from " + MODEL_PATH)
     model.load_state_dict(torch.load(MODEL_PATH))
 
-    mels_paths = [f for f in sorted(
-        os.listdir(args.mels_dir)) if f.endswith(".npy")]
-    test_mels = [np.load(os.path.join(args.mels_dir, m)).T for m in mels_paths]
+
+    # mels_paths = [f for f in sorted(
+    #     os.listdir(args.mels_dir)) if f.endswith(".npy")]
+    map_path = os.path.join(args.mels_dir, 'map.txt')
+    f = open(map_path)
+    maps = f.readlines()
+    f.close()
+
+    mels_paths = [x.split('|')[1] for x in maps]
+    test_mels = [np.load(m).T for m in mels_paths]
+
 
     fu.ensure_dir(output_dir)
 
     for i, mel in enumerate(test_mels):
         print('\nGenerating: %i/%i' % (i+1, len(test_mels)))
         model.generate(mel, output_dir + f'/{i}_generated.wav')
-
 
 def main():
     # TODO: use custom workdir directory etc. instead of
@@ -70,13 +79,16 @@ def main():
     parser.add_argument('--output_dir', default="synthesized_wavs",
                         help='Output folder for synthesized wavs')
     args = parser.parse_args()
+    isSentenceFile = False
 
     if args.sentences_file is None:
         sentences = ["Hello, World!",
                      "How much wood would a woodchuck chuck if a woodchuck could chuck wood?"]
+
     else:
         with open(args.sentences_file, 'rt') as fp:
-            sentences = fp.readlines()
+            sentences = [x.strip() for x in fp.readlines()]
+        isSentenceFile = True
 
     synthesize(sentences, args.output_dir)
 
