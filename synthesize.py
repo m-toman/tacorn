@@ -57,8 +57,9 @@ def synthesize(sentences, output_dir):
     map_path = os.path.join(args.mels_dir, 'map.txt')
     f = open(map_path)
     maps = f.readlines()
-    mels_paths = [x.split('|')[1] for x in maps]
     f.close()
+
+    mels_paths = [x.split('|')[1] for x in maps]
     test_mels = [np.load(m).T for m in mels_paths]
 
 
