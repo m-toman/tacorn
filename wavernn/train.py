@@ -80,6 +80,50 @@ def _generate(model, step, test_ids, samples=3):
             mel, f'{GEN_PATH}{k}k_steps_{i}_generated.wav'))
     return outputs
 
+# training procedure from https://github.com/fatchord/WaveRNN/blob/master/NB2%20-%20Fit%20a%20Short%20Sample.ipynb
+# def train(model, optimizer, num_steps, batch_size, seq_len=960) :
+    # start = time.time()
+    # running_loss = 0
+    
+    # for step in range(num_steps) :
+        
+    #     loss = 0
+    #     hidden = model.init_hidden(batch_size)
+    #     optimizer.zero_grad()
+    #     rand_idx = np.random.randint(0, coarse_classes.shape[1] - seq_len - 1)
+        
+    #     for i in range(seq_len) :
+            
+    #         j = rand_idx + i
+            
+    #         x_coarse = coarse_classes[:, j:j + 1]
+    #         x_fine = fine_classes[:, j:j + 1]
+    #         x_input = np.concatenate([x_coarse, x_fine], axis=1)
+    #         x_input = x_input / 127.5 - 1.
+    #         x_input = torch.FloatTensor(x_input).cuda()
+            
+    #         y_coarse = coarse_classes[:, j + 1]
+    #         y_fine = fine_classes[:, j + 1]
+    #         y_coarse = torch.LongTensor(y_coarse).cuda()
+    #         y_fine = torch.LongTensor(y_fine).cuda()
+            
+    #         current_coarse = y_coarse.float() / 127.5 - 1.
+    #         current_coarse = current_coarse.unsqueeze(-1)
+            
+    #         out_coarse, out_fine, hidden = model(x_input, hidden, current_coarse)
+            
+    #         loss_coarse = F.cross_entropy(out_coarse, y_coarse)
+    #         loss_fine = F.cross_entropy(out_fine, y_fine)
+    #         loss += (loss_coarse + loss_fine)
+        
+    #     running_loss += (loss.item() / seq_len)
+    #     loss.backward()
+    #     optimizer.step()
+        
+    #     speed = (step + 1) / (time.time() - start)
+        
+    #     stream('Step: %i/%i --- Loss: %.2f --- Speed: %.1f batches/second ',
+    #           (step + 1, num_steps, running_loss / (step + 1), speed))
 
 def _train(model, dataset, test_ids, optimiser, epochs, batch_size, classes, seq_len, step, lr=1e-4):
     loss_threshold = 4.0
@@ -100,6 +144,7 @@ def _train(model, dataset, test_ids, optimiser, epochs, batch_size, classes, seq
         iters = len(trn_loader)
 
         for i, (x, m, y) in enumerate(trn_loader):
+            
             x, m, y = x.to(device), m.to(device), y.to(device)
 
             y_hat = model(x, m)
@@ -151,7 +196,7 @@ def train(cfg):
     logger.info("Dataset length: " + str(len(dataset)))
 
     x, m, y = next(iter(data_loader))
-    logger.debug("x.shape: %s, m.shape: %s, y.shape: %s" % (str(x.shape), str(m.shape), str(y.shape))
+    logger.debug("x.shape: %s, m.shape: %s, y.shape: %s" % (str(x.shape), str(m.shape), str(y.shape)))
 
     model = Model(hidden_size=896, quantisation=256)
 
