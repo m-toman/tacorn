@@ -55,9 +55,11 @@ Currently under heavily development and not usable yet.
 
 ### Create
 
-* Input: Configuration parameters or a configuration file
+* Input: Configuration parameters
 * Output: Configured experiment directory
+* Invocation: create.py
 
+Creates a new experiment directory.
 
 
 ### Preprocessing
