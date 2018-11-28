@@ -1,5 +1,7 @@
 # tacorn
 
+WARNING: not usable yet, check the fatchord_model branch for a sort-of-usable version.
+
 This repository combines the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with an WaveRNN implementation adopted from https://github.com/fatchord/WaveRNN.
 
 ## Introduction
@@ -46,8 +48,8 @@ Currently under heavily development and not usable yet.
 
 - `raw`: input corpus - wavs and texts
 - `features`: preprocessed input features (e.g. mel spectrum, potentially labels containing linguistic specifications)
-- `taco2_workdir`: Tacotron2 working directory
-- `wavernn_workdir`: WaveRNN working directory
+- `workdir_taco2`: Tacotron2 working directory
+- `workdir_wavernn`: WaveRNN working directory
 - `synthesized_wavs`: Synthesized wavefiles 
 
 
