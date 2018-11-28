@@ -1,71 +1,85 @@
 # tacorn
 
-WARNING1: The pre-trained models are (yet again) not compatible with the latest version of Rayhane-mamah's Tacotron2 repository.
+This repository combines the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with an WaveRNN implementation adopted from https://github.com/fatchord/WaveRNN.
 
-WARNING2: This is experimental, messy and will most likely not be developed further.
+## Introduction
 
-This repository combines the Tacotron-2 implementation of Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with the WaveRNN-inspired (but heavily diverged) method by fatchord (https://github.com/fatchord/WaveRNN).
+Speech synthesis systems consist of multiple components, which have traditionally been developed manually and are increasingly being replaced by machine learning models.
 
-## Samples
+Here we define three components used in statistical parametric speech synthesis. We don't consider unit selection or hybrid unit selection systems or physical modeling based systems.
 
-- German: https://www.dropbox.com/s/6b90kuj5ce3mogr/de_1_generated.wav?dl=0
-- English: https://www.dropbox.com/s/szrkknthxoj3znl/en_1_generated.wav?dl=0
+### Text analysis
+Component to generate a linguistic specification from text input.
 
-## Synthesis
+Traditionally this involves hand-coded language specific rules, a pronuncation dictionary, letter-to-sound (or grapheme-to-phoneme) model for out of dictionary words and potentially additional models, e.g. ToBI endtone prediction, part of speech tagging, phrasing prediction etc.
+The result for a given input sentence is a sequence of linguistic specifications, for example encoded as HTK labels. This specification typically at least holds a sequence of phones (or phonemes) but typically also includes contextual information like surrounding phones, interpunctuation, counts for segments, syllables, words, phrases etc. (see for example <https://github.com/MattShannon/HTS-demo_CMU-ARCTIC-SLT-STRAIGHT-AR-decision-tree/blob/master/data/lab_format.pdf>).
+Examples for actual systems to perform text analysis are Festival, Flite or Ossian (REFs).
 
-If you just want to synthesize from the pre-trained (English, LJ) models, currently you just have to run
+Recent systems take a step towards end-to-end synthesis and aim to replace those often complex codebases by machine learning models. 
+Here we focus on Tacotron (REF).
 
-```
-bash install.sh
-```
-then:
-```
-python synthesize.py
-```
+### Acoustic feature prediction
+Component consuming a linguistic specification to predict some sort of intermediate acoustic representation.
 
-Usage:
-```
-usage: synthesize.py [-h] [--sentences_file SENTENCES_FILE]
-                     [--output_dir OUTPUT_DIR]
+Intermediate acoustic representations are used because of useful properties for modeling but also because they are typically using a lower time resolution than the raw waveforms. Almost all commonly used representations employ a Fourier transformation, so for example with a commonly used window shift of 5ms we end up with only 200 feature vectors per second instead of 48000 for 48kHz speech. 
+Examples for commonly used features include Mel-Frequency Cepstral Coefficents (MFCCs) and Line Spectral Pairs (LSPs).
+Furthermore, additional features like fundamental frequency (F0) or aperiodicity features are commonly used.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --sentences_file SENTENCES_FILE
-                        Input file containing sentences to synthesize
-  --output_dir OUTPUT_DIR
-                        Output folder for synthesized wavs
-```
+The acoustic feature prediction component traditionally often employed a separate duration model to predict the number of acoustic features to be generated for each segment (i.e. phone), then an acoustic model to predict the actual acoustic features. Here we focus on Tacotron, which employs an attention-baed sequence to sequence model to merge duration and acoustic feature prediction into a single model.
 
-Please note that the install.sh script pulling a pre-trained model is just a temporary solution and will be changed with future version.
+### Waveform generation
+Component generating waveforms from acoustic features.
 
-## Training
+The component performing this operation is often called a Vocoder and traditionally involves signal processing to encode and decode speech. Examples for Vocoders are STRAIGHT, WORLD, hts_engine, GlottHMM, GlottDNN or Vocaine.
 
-install.sh grabs pre-trained models from the LJ dataset (https://keithito.com/LJ-Speech-Dataset/), so you don't necessarily have to do this step.
+Recently neural vocoders were employed with good success and include WaveNet, WaveRNN, WaveGlow, FFTNet and SampleRNN (REFs).
+The main disadvantage of neural vocoders is that they are yet another model that has to be trained, typically even per speaker. This now only means additional computing resources and time required but also complicates deployment and requires additional hyperparameter tuning for this model. Possibilities to work around this include multi-speaker models or speaker-independent modeling (<https://arxiv.org/abs/1811.06292>).
 
-To continue training on the LJ dataset, or start from scratch:
-```
-bash install.sh
-cd tacotron
-wget http://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2
-bunzip LJSpeech-1.1.tar.bz2
-tar xf LJSpeech-1.1.tar
-python3 preprocess.py
-python3 train.py
-# you can stop after synthesis of the GTA mels, once it's in wavenet training
-cd ..
-bash preprocess.sh
-bash train.sh
-```
+Here we focus on WaveRNN although the currently included Tacotron-2 implementation by Rayhane-mamah also includes WaveNet.
 
-If you're happy with the Tacotron output before it finished by itself, you can also interrupt the training and do:
-```
-cat 1|0|0| > logs-Tacotron-2/state_log
-python3 train.py 
-```
 
-## Pre-trained models
+## Status
 
-- LJ dataset, Tacotron, 80k steps: https://www.dropbox.com/sh/z3nnetvyrsq9cip/AABXTGSl-P3dXJDIt6JpS8Eia?dl=0
-(extract in ./Tacotron-2)
-- LJ dataset, WaveRNN, 720k steps: https://www.dropbox.com/sh/ruq9elymhh9cyjl/AAD8u_PefFz_qwiAckqwqGzwa?dl=0
-(extract in ./model_checkpoints)
+Currently under heavily development and not usable yet.
+
+## Experiment folder contents
+
+- `raw`: input corpus - wavs and texts
+- `features`: preprocessed input features (e.g. mel spectrum, potentially labels containing linguistic specifications)
+- `taco2_workdir`: Tacotron2 working directory
+- `wavernn_workdir`: WaveRNN working directory
+- `synthesized_wavs`: Synthesized wavefiles 
+
+
+## Process
+
+### Create
+
+* Input: Configuration parameters or a configuration file
+* Output: Configured experiment directory
+
+
+
+### Preprocessing
+
+* Input: corpus in `raw`
+* Output: processed features in `features`
+* Invocation: preprocess.py
+
+
+### Training
+
+* Input: processed features in `features`
+* Output: trained models in `taco2_workdir`and `wavernn_workdir`
+* Invocation: train.py
+
+### Synthesis
+
+* Input: trained models in `taco2_workdir`and `wavernn_workdir`
+* Output: Wavefiles in `synthesized_wavs`
+* Invocation: synthesis.py
+
+
+### Export
+
+export.py
