@@ -1,5 +1,6 @@
 """ Handles experiment folders. """
 import os
+import json
 from typing import MutableMapping
 import tacorn.fileutils as fu
 
@@ -36,6 +37,7 @@ def _apply_file_structure(experiment_path, function):
     paths = {}
     paths["raw"] = function(experiment_path, "raw")
     paths["features"] = function(experiment_path, "features")
+    paths["config"] = function(experiment_path, "config")
     paths["workdir_taco2"] = function(experiment_path, "workdir_taco2")
     paths["workdir_wavernn"] = function(experiment_path, "workdir_wavernn")
     paths["synthesized_wavs"] = function(experiment_path, "synthesized_wavs")
@@ -67,7 +69,9 @@ def create(experiment_path, config) -> Experiment:
     exp = Experiment()
     exp.paths = create_file_structure(experiment_path)
     exp.config = check_config(config)
-    # TODO: store config
+    cfg_file = os.path.join(exp.paths["config"], "experiment_config.json")
+    with open(cfg_file, "wt") as cfg_fp:
+        json.dump(exp.config, cfg_fp)
     return exp
 
 
@@ -75,6 +79,7 @@ def load(experiment_path) -> Experiment:
     """ Loads an experiment or raises an Error. """
     exp = Experiment()
     exp.paths = check_file_structure(experiment_path)
-    # TODO: load config
-    # exp.config =
+    cfg_file = os.path.join(exp.paths["config"], "experiment_config.json")
+    with open(cfg_file, "rt") as cfg_fp:
+        exp.config = json.load(cfg_fp)
     return exp

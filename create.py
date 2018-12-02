@@ -36,7 +36,7 @@ def main():
                         help='Model to use for waveform generation.')
     args = parser.parse_args()
 
-    paths = experiment.create_file_structure(args.experiment_path)
+    exp = experiment.create_file_structure(args.experiment_path)
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@
     Preprocesses raw wavs and texts in a given experiment folder.
 """
 
+import sys
 import argparse
 
 import tacorn.fileutils as fu
@@ -9,7 +10,12 @@ import tacorn.constants as consts
 import tacorn.experiment as experiment
 
 
-# def preprocess(paths, args):
+def preprocess(exp, args):
+    """ Preprocesses data given in args using the experiment
+        stored in exp. """
+    paths = exp.paths
+    print(paths)
+    print(exp.config)
 
 
 def main():
@@ -24,11 +30,12 @@ def main():
     args = parser.parse_args()
 
     try:
-        paths = experiment.check_file_structure(args.experiment_dir)
-    except FileNotFoundError:
+        exp = experiment.load(args.experiment_dir)
+    except Exception:
         print("Invalid experiment folder given: %s" % (args.experiment_dir))
+        sys.exit(1)
 
-    preprocess(paths, args)
+    preprocess(exp, args)
 
 
 if __name__ == '__main__':
