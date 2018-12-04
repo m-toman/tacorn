@@ -27,6 +27,8 @@ class TestExperiment(unittest.TestCase):
 
         exp1 = experiment.create(tmp_dir, cfg)
         exp2 = experiment.load(tmp_dir)
+        print(exp1)
+        print(exp2)
         print(repr(exp1))
         print(repr(exp2))
 

@@ -9,11 +9,16 @@ class Experiment(object):
     """ Represents an experiment. """
 
     def __init__(self):
-        self.config = dict()
+        self.config = {"language": "en_US",
+                       "wavegen_model": "wavernn", "feature_model": "tacotron2"}
         self.paths: MutableMapping[str, str] = dict()
 
     def __repr__(self):
         return repr(self.config) + "\n" + repr(self.paths)
+
+    def __eq__(self, other):
+        return (self.config == other.config and
+                self.paths == other.paths)
 
 
 def _create_subfolder(experiment_path, folder):
@@ -35,6 +40,7 @@ def _check_subfolder(experiment_path, folder):
 def _apply_file_structure(experiment_path, function):
     """ Applies function to all folder elements and returns a path map. """
     paths = {}
+    paths["root"] = function(experiment_path, "")
     paths["raw"] = function(experiment_path, "raw")
     paths["features"] = function(experiment_path, "features")
     paths["config"] = function(experiment_path, "config")
