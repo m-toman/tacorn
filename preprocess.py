@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 
-def preprocess(exp: experiment.Experiment):
+def preprocess(exp: experiment.Experiment, args):
     """ Preprocesses data given in args using the experiment
         stored in exp. """
     logger.info("Loading feature model wrapper %s" %
