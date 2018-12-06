@@ -27,10 +27,6 @@ class TestExperiment(unittest.TestCase):
 
         exp1 = experiment.create(tmp_dir, cfg)
         exp2 = experiment.load(tmp_dir)
-        print(exp1)
-        print(exp2)
-        print(repr(exp1))
-        print(repr(exp2))
 
         self.assertEqual(exp1, exp2)
         #self.assertTrue(len(train_df) / len(test_df) < 2.0)

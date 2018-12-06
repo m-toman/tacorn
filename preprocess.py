@@ -11,6 +11,7 @@ import logging
 import tacorn.fileutils as fu
 import tacorn.constants as consts
 import tacorn.experiment as experiment
+import tacorn.wrappers as wrappers
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
@@ -28,9 +29,9 @@ def preprocess(exp: experiment.Experiment, args):
     """ Preprocesses data given in args using the experiment
         stored in exp. """
     #_get_raw(exp, args)
-    logger.info("Loading feature model wrapper %s" %
+    logger.info("Loading feature model wrapper %s for preprocessing" %
                 (experiment.config["feature_model"]))
-    wrapper_module.get_modulepreprocess(exp, args)
+    wrappers.load(exp.config["feature_model"]).preprocess(exp, args)
     logger.info("Preprocessing done")
 
 

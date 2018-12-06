@@ -1,28 +1,46 @@
-import os
-import sys
-import tacorn.fileutils as fu
-import config
-import wavernn.train
+import argparse
+import logging
+
+import tacorn.wrappers as wrappers
+import tacorn.experiment as experiment
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def train(exp: experiment.Experiment, args) -> None:
+    """ Trains feature prediction and waveform generation models. """
+    # TODO: pause/resume training
+    if args["model"] in ("feature", "both"):
+        logger.info("Loading feature model wrapper %s for training" %
+                    (experiment.config["feature_model"]))
+        wrappers.load(exp.config["feature_model"]).train(exp, args)
+        logger.info("Training feature model done")
+        # TODO: generate intermediate features if successful
+
+    if args["model"] in ("wavegen", "both"):
+        # TODO: check if intermediate features exist
+        # TODO: train waveform gen model
+        pass
 
 
 def main():
-    # TODO: get from cmd line
-    pretrained_model = "LJ"
-    workdir = "workdir"
-    cfg = config.Configuration()
+    """ main function for training. """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('experiment_dir',
+                        help='Experiment directory.')
+    parser.add_argument('--model', default='both',
+                        help='Which model to train: feature, wavegen, both. Default: both')
+    args = parser.parse_args()
 
-    print("This script is not functional yet, please use train.sh")
-    sys.exit(1)
+    try:
+        exp = experiment.load(args.experiment_dir)
+    except Exception:
+        print("Invalid experiment folder given: %s" % (args.experiment_dir))
+        sys.exit(1)
 
-    cfg.paths = create_workdir_structure(workdir)
-
-    # TODO: preprocessing
-
-    if pretrained_model:
-        cfg.paths["wavernn_pretrained_model"] = get_pretrained_wavernn(
-            pretrained_model, cfg.paths["wavernn_pretrained"])
-
-    wavernn.train.train(cfg)
+    train(exp, args)
 
 
 if __name__ == '__main__':

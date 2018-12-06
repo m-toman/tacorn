@@ -12,19 +12,18 @@ import tacotron2.hparams
 
 def create(experiment: Experiment, args) -> None:
     """ Creates Tacotron-2 specific folders and configuration. """
-    experiment.paths["tacotron2_root"] = os.path.join(experiment.paths["root"], )
+    return
 
 
-def preprocess(experiment: Experiment, wav_dir: str, text_file: str) -> None:
+def preprocess(experiment: Experiment, args) -> None:
     """ Preprocesses wavs and text, returns None or raises an Exception. """
-
     # bring data in format usable by Tacotron-2
     # for now just copy them over
-    raw_wav_dir = os.path.join(experiment.paths["base_dir"], "wavs")
+    raw_wav_dir = os.path.join(experiment.paths["feature_model"], "LJSpeech-1.1", "wavs")
     fu.ensure_dir(raw_wav_dir)
-    fu.copy_files(wav_dir, raw_wav_dir)
-    raw_metadata_file = os.path.join(experiment.paths["raw"], "metadata.csv")
-    fu.copy_file(text_file, raw_metadata_file)
+    fu.copy_files(args["wav_dir"], raw_wav_dir)
+    raw_metadata_file = os.path.join(experiment.paths["feature_model"], "LJSpeech-1.1", "metadata.csv")
+    fu.copy_file(args["text_file"], raw_metadata_file)
 
     # run Tacotron-2 preprocessing
     args = namedtuple(
@@ -44,4 +43,7 @@ def preprocess(experiment: Experiment, wav_dir: str, text_file: str) -> None:
     modified_hp = tacotron2.hparams.parse(args.hparams)
     tacotron2.preprocess.run_preprocess(args, modified_hp)
 
+
+def create(experiment: Experiment, args) -> None:
+    """ Creates Tacotron-2 specific folders and configuration. """
     return
