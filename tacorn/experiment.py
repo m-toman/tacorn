@@ -75,13 +75,17 @@ def create(experiment_path, config) -> Experiment:
     exp = Experiment()
     exp.paths = create_file_structure(experiment_path)
     exp.config = check_config(config)
+    return save(exp)
+
+
+def save(exp: Experiment) -> Experiment:
     cfg_file = os.path.join(exp.paths["config"], "experiment_config.json")
     with open(cfg_file, "wt") as cfg_fp:
         json.dump(exp.config, cfg_fp)
     return exp
 
 
-def load(experiment_path) -> Experiment:
+def load(experiment_path: str) -> Experiment:
     """ Loads an experiment or raises an Error. """
     exp = Experiment()
     exp.paths = check_file_structure(experiment_path)

@@ -24,6 +24,6 @@ def copy_file(src, dst):
 
 
 def download_file(url, target):
-    """ Downloads file from url into target. """
+    """ Downloads file from url into target file. """
     with urllib.request.urlopen(url) as response, open(target, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)

@@ -1,14 +1,39 @@
 """ Wraps Tacotron-2 functionality. """
+import os
 import sys
 import multiprocessing
+import zipfile
 from collections import namedtuple
 
 import tacorn.fileutils as fu
+import tacorn.constants as constants
 from tacorn.experiment import Experiment
 
 sys.path.append('tacotron2')
 import tacotron2.preprocess
 import tacotron2.hparams
+
+def _check_pretrained_model(experiment: Experiment) -> None:
+    pretrained_dir = os.path.join(
+        experiment.paths["feature_model"], "logs-Tacotron", "taco_pretrained")
+    checkpoint_file = os.path.join(pretrained_dir, "checkpoint")
+    if not os.path.exists(pretrained_dir):
+        raise FileNotFoundError(pretrained_dir)
+    if not os.path.exists(checkpoint_file):
+        raise FileNotFoundError(checkpoint_file)
+
+
+def download_pretrained(experiment: Experiment, url: str) -> None:
+    """ Downloads a pretrained model. """
+    print("EXPERIMENT")
+    print(experiment)
+    pretrained_dir = os.path.join(
+        experiment.paths["feature_model"], "logs-Tacotron")
+    pretrained_zip = os.path.join(pretrained_dir, "taco_pretrained.zip")
+    fu.ensure_dir(pretrained_dir)
+    fu.download_file(url, pretrained_zip)
+    with zipfile.ZipFile(pretrained_zip, 'r') as zip_ref:
+        zip_ref.extractall(pretrained_dir)
 
 
 def create(experiment: Experiment, args) -> None:
