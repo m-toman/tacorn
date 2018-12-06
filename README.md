@@ -2,7 +2,8 @@
 
 WARNING: not usable yet, check the fatchord_model branch for a sort-of-usable version.
 
-This repository combines the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with an WaveRNN implementation adopted from https://github.com/fatchord/WaveRNN.
+TTS framework bridging different 2018/2019 state-of-the-art open source methods.
+Currently aims to combine the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with an WaveRNN implementation adopted from https://github.com/fatchord/WaveRNN with the overall goal to more easily allow swapping out single components.
 
 ## Introduction
 
@@ -47,9 +48,9 @@ Currently under heavily development and not usable yet.
 ## Experiment folder contents
 
 - `raw`: input corpus - wavs and texts
-- `features`: preprocessed input features (e.g. mel spectrum, potentially labels containing linguistic specifications)
-- `workdir_taco2`: Tacotron2 working directory
-- `workdir_wavernn`: WaveRNN working directory
+- `features`: holds preprocessed or intermediate features (e.g. mel spectrum, potentially labels containing linguistic specifications) if not stored in feature_model or wavegen_model.
+- `feature_model`: Working directory for the feature prediction component. 
+- `wavegen_model`: Working directory for the waveform generation component.
 - `synthesized_wavs`: Synthesized wavefiles 
 
 
@@ -66,24 +67,28 @@ Creates a new experiment directory.
 
 ### Preprocessing
 
-* Input: corpus in `raw`
-* Output: processed features in `features`
+* Input: corpus in `raw` or given by parameter
+* Output: processed features in `features` or `feature_model`
 * Invocation: preprocess.py
+
+Preprocessing waveforms and orthographic transcription.
 
 
 ### Training
 
-* Input: processed features in `features`
-* Output: trained models in `taco2_workdir`and `wavernn_workdir`
+* Input: processed features 
+* Output: trained models in `feature_model` and `wavegen_model`
 * Invocation: train.py
+
+Train feature prediction and neural vocoder models.
 
 ### Synthesis
 
-* Input: trained models in `taco2_workdir`and `wavernn_workdir`
-* Output: Wavefiles in `synthesized_wavs`
+* Input: text, trained models in `feature_model`and `wavegen_model`
+* Output: wavefiles in `synthesized_wavs`
 * Invocation: synthesis.py
 
 
 ### Export
 
-export.py
+TODO

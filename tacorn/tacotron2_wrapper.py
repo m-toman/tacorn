@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 import multiprocessing
+import tacorn.fileutils as fu
 from tacorn.experiment import Experiment
 
 sys.path.append('tacotron2')
@@ -9,8 +10,23 @@ import tacotron2.preprocess
 import tacotron2.hparams
 
 
+def create(experiment: Experiment, args) -> None:
+    """ Creates Tacotron-2 specific folders and configuration. """
+    experiment.paths["tacotron2_root"] = os.path.join(experiment.paths["root"], )
+
+
 def preprocess(experiment: Experiment, wav_dir: str, text_file: str) -> None:
     """ Preprocesses wavs and text, returns None or raises an Exception. """
+
+    # bring data in format usable by Tacotron-2
+    # for now just copy them over
+    raw_wav_dir = os.path.join(experiment.paths["base_dir"], "wavs")
+    fu.ensure_dir(raw_wav_dir)
+    fu.copy_files(wav_dir, raw_wav_dir)
+    raw_metadata_file = os.path.join(experiment.paths["raw"], "metadata.csv")
+    fu.copy_file(text_file, raw_metadata_file)
+
+    # run Tacotron-2 preprocessing
     args = namedtuple(
         "tacoargs", "base_dir hparams dataset language voice reader merge_books book output n_jobs".split())
     args.base_dir = experiment.paths["root"]

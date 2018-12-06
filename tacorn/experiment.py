@@ -44,8 +44,8 @@ def _apply_file_structure(experiment_path, function):
     paths["raw"] = function(experiment_path, "raw")
     paths["features"] = function(experiment_path, "features")
     paths["config"] = function(experiment_path, "config")
-    paths["workdir_taco2"] = function(experiment_path, "workdir_taco2")
-    paths["workdir_wavernn"] = function(experiment_path, "workdir_wavernn")
+    paths["feature_model"] = function(experiment_path, "feature_model")
+    paths["wavegen_model"] = function(experiment_path, "wavegen_model")
     paths["synthesized_wavs"] = function(experiment_path, "synthesized_wavs")
     # paths["wavernn_pretrained"] = function(experiment_path, "wavernn_pretrained")
     return paths

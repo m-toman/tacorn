@@ -2,6 +2,7 @@
     Preprocesses raw wavs and texts in a given experiment folder.
 """
 
+import os
 import sys
 import argparse
 import importlib
@@ -16,18 +17,21 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 
+def _get_raw(exp: experiment.Experiment, args):
+    """ Retrieves raw data, performing potential pre-preprocessing before
+        feeding into the preprocessing of the feature prediction model. """
+    # for now just check text file format
+    return
+
+
 def preprocess(exp: experiment.Experiment, args):
     """ Preprocesses data given in args using the experiment
         stored in exp. """
+    #_get_raw(exp, args)
     logger.info("Loading feature model wrapper %s" %
                 (experiment.config["feature_model"]))
-    wrapper_module = importlib.import_module(
-        "tacorn." + experiment.config["feature_model"] + "_wrapper")
-    logger.info("Preprocessing")
-    wrapper_module.preprocess(
-        exp, wav_dir=args["wav_dir"], text_file=args["text_file"])
+    wrapper_module.get_modulepreprocess(exp, args)
     logger.info("Preprocessing done")
-    
 
 
 def main():

@@ -7,6 +7,7 @@ import argparse
 import tacorn.fileutils as fu
 import tacorn.constants as consts
 import tacorn.experiment as experiment
+import tacorn.wrappers as wrappers
 
 
 def get_pretrained_wavernn(model_id, targetdir):
@@ -36,7 +37,8 @@ def main():
                         help='Model to use for waveform generation.')
     args = parser.parse_args()
 
-    exp = experiment.create_file_structure(args.experiment_path)
+    exp = experiment.create(args.experiment_path, args)
+    wrappers.load(exp.config["feature_model"]).create(exp, args)
 
 
 if __name__ == '__main__':
