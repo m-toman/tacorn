@@ -25,8 +25,6 @@ def _check_pretrained_model(experiment: Experiment) -> None:
 
 def download_pretrained(experiment: Experiment, url: str) -> None:
     """ Downloads a pretrained model. """
-    print("EXPERIMENT")
-    print(experiment)
     pretrained_dir = os.path.join(
         experiment.paths["feature_model"], "logs-Tacotron")
     pretrained_zip = os.path.join(pretrained_dir, "taco_pretrained.zip")
@@ -34,6 +32,7 @@ def download_pretrained(experiment: Experiment, url: str) -> None:
     fu.download_file(url, pretrained_zip)
     with zipfile.ZipFile(pretrained_zip, 'r') as zip_ref:
         zip_ref.extractall(pretrained_dir)
+    os.remove(pretrained_zip)
 
 
 def create(experiment: Experiment, args) -> None:

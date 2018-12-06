@@ -26,15 +26,10 @@ class TestTacotron2Wrapper(unittest.TestCase):
                                "vocalid_taco2_download_test")
         if (os.path.exists(tmp_dir)):
             shutil.rmtree(tmp_dir)
-        print(tmp_dir)
-
         exp = experiment.create(tmp_dir, cfg)
         tacotron2_wrapper.download_pretrained(exp, constants.PRETRAINED_FEATURE_MODELS["lj"]["tacotron2"])
         tacotron2_wrapper._check_pretrained_model(exp)
-
-        #shutil.rmtree(tmp_dir)
-        #self.assertEqual(exp1, exp2)
-        #self.assertTrue(len(train_df) / len(test_df) < 2.0)k
+        shutil.rmtree(tmp_dir)
 
 
 if __name__ == '__main__':
