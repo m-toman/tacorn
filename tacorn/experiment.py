@@ -80,7 +80,6 @@ def create(experiment_path, config) -> Experiment:
 
 def save(exp: Experiment) -> Experiment:
     cfg_file = os.path.join(exp.paths["config"], "experiment_config.json")
-    print("BLA: " + str(exp.config))
     with open(cfg_file, "wt") as cfg_fp:
         json.dump(exp.config, cfg_fp)
     return exp

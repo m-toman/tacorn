@@ -2,6 +2,8 @@
     Creates and initializes a new experiment folder.
 """
 import os
+import sys
+import shutil
 import argparse
 import logging
 import tacorn.fileutils as fu
@@ -30,6 +32,10 @@ def get_pretrained_wavernn(model_id, targetdir):
     return model_path
 
 
+def _get_download_url(download_map, args):
+    return download_map[args.download_feature_model][args.feature_model]
+
+
 def main():
     """ main function for creating a new experiment directory. """
     parser = argparse.ArgumentParser()
@@ -38,17 +44,34 @@ def main():
     parser.add_argument('--feature_model', default="tacotron2",
                         help='Model to use for feature prediction (tacotron2).')
     parser.add_argument('--download_feature_model', default=None,
+                        choices=consts.PRETRAINED_FEATURE_MODELS.keys(),
                         help=('Name of a pretrained feature model to download (%s)'
                               % (" ".join(consts.PRETRAINED_FEATURE_MODELS.keys()))))
     parser.add_argument('--wavegen_model', default="none",
                         help='Model to use for waveform generation (wavernn or none). Default: none')
+    parser.add_argument('--force', action='store_const', const=True,
+                        help='Forces creation of this experiment, deleting an existing experiment if necessary')
     args = parser.parse_args()
 
-    logger.info("Creating experiment at (%s)" % (args.experiment_dir))
+    if os.path.exists(args.experiment_dir):
+        if args.force:
+            logger.info("Deleting existing experiment at %s" % (args.experiment_dir))
+            shutil.rmtree(args.experiment_dir)
+        else:
+            print("Experiment already exists at %s, stopping" % (args.experiment_dir))
+            return -1
+
+    logger.info("Creating experiment at %s" % (args.experiment_dir))
     exp = experiment.create(args.experiment_dir, args)
-    wrappers.load(exp.config["feature_model"]).create(exp, args)
+    module_wrapper = wrappers.load(exp.config["feature_model"])
+    module_wrapper.create(exp, args)
+    if args.download_feature_model:
+        logger.info("Downloading feature model %s" % (args.download_feature_model))
+        module_wrapper.download_pretrained(
+            exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
     experiment.save(exp)
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
