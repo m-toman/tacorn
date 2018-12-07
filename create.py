@@ -63,13 +63,16 @@ def main():
 
     logger.info("Creating experiment at %s" % (args.experiment_dir))
     exp = experiment.create(args.experiment_dir, args)
-    module_wrapper = wrappers.load(exp.config["feature_model"])
-    module_wrapper.create(exp, args)
-    if args.download_feature_model:
-        logger.info("Downloading feature model %s" % (args.download_feature_model))
-        module_wrapper.download_pretrained(
-            exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
-    experiment.save(exp)
+    try:
+        module_wrapper = wrappers.load(exp.config["feature_model"])
+        module_wrapper.create(exp, args)
+        if args.download_feature_model:
+            logger.info("Downloading feature model %s" % (args.download_feature_model))
+            module_wrapper.download_pretrained(
+                exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
+        experiment.save(exp)
+    except ModuleNotFoundError as mnfe:
+        print("Module for %s not found, did you run install.sh?" % (args.feature_model))
     return 0
 
 
