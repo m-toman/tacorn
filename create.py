@@ -44,8 +44,8 @@ def main():
                         help='Model to use for waveform generation (wavernn or none). Default: none')
     args = parser.parse_args()
 
-    logger.info("Creating experiment at (%s)" % (args.experiment_path))
-    exp = experiment.create(args.experiment_path, args)
+    logger.info("Creating experiment at (%s)" % (args.experiment_dir))
+    exp = experiment.create(args.experiment_dir, args)
     wrappers.load(exp.config["feature_model"]).create(exp, args)
     experiment.save(exp)
 
