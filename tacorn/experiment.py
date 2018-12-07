@@ -74,7 +74,9 @@ def create(experiment_path, config) -> Experiment:
     """ Creates a new experiment at path. """
     exp = Experiment()
     exp.paths = create_file_structure(experiment_path)
-    exp.config = check_config(config)
+    new_config = check_config(config)
+    for key, value in enumerate(new_config):
+        exp.config[key] = value
     return save(exp)
 
 

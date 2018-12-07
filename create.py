@@ -55,24 +55,28 @@ def main():
 
     if os.path.exists(args.experiment_dir):
         if args.force:
-            logger.info("Deleting existing experiment at %s" % (args.experiment_dir))
+            logger.info("Deleting existing experiment at %s" %
+                        (args.experiment_dir))
             shutil.rmtree(args.experiment_dir)
         else:
-            print("Experiment already exists at %s, stopping" % (args.experiment_dir))
+            print("Experiment already exists at %s, stopping" %
+                  (args.experiment_dir))
             return -1
 
     logger.info("Creating experiment at %s" % (args.experiment_dir))
     exp = experiment.create(args.experiment_dir, args)
     try:
         module_wrapper = wrappers.load(exp.config["feature_model"])
-        module_wrapper.create(exp, args)
+        module_wrapper.create(exp, vars(args))
         if args.download_feature_model:
-            logger.info("Downloading feature model %s" % (args.download_feature_model))
+            logger.info("Downloading feature model %s" %
+                        (args.download_feature_model))
             module_wrapper.download_pretrained(
                 exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
         experiment.save(exp)
     except ModuleNotFoundError as mnfe:
-        print("Module for %s not found, did you run install.sh?" % (args.feature_model))
+        print("Module for %s not found, did you run install.sh?" %
+              (args.feature_model))
     return 0
 
 

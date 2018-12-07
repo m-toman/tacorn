@@ -4,6 +4,7 @@ import sys
 import multiprocessing
 import zipfile
 from collections import namedtuple
+from typing import Mapping
 
 import tacorn.fileutils as fu
 import tacorn.constants as constants
@@ -12,6 +13,7 @@ from tacorn.experiment import Experiment
 sys.path.append('tacotron2')
 import tacotron2.preprocess
 import tacotron2.hparams
+
 
 def _check_pretrained_model(experiment: Experiment) -> None:
     pretrained_dir = os.path.join(
@@ -40,7 +42,7 @@ def create(experiment: Experiment, args) -> None:
     return
 
 
-def preprocess(experiment: Experiment, args) -> None:
+def preprocess(experiment: Experiment, args: Mapping) -> None:
     """ Preprocesses wavs and text, returns None or raises an Exception. """
     # bring data in format usable by Tacotron-2
     # for now just copy them over
@@ -53,22 +55,23 @@ def preprocess(experiment: Experiment, args) -> None:
     fu.copy_file(args["text_file"], raw_metadata_file)
 
     # run Tacotron-2 preprocessing
-    args = namedtuple(
+    tacoargs = namedtuple(
         "tacoargs", "base_dir hparams dataset language voice reader merge_books book output n_jobs".split())
-    args.base_dir = experiment.paths["feature_model"]
-    args.language = experiment.config["language"]
-    args.output = experiment.paths["features"]
-    args.hparams = ""
-    args.n_jobs = multiprocessing.cpu_count()
+    tacoargs.base_dir = experiment.paths["feature_model"]
+    print("experiment: " + str(experiment.config))
+    tacoargs.language = experiment.config["language"]
+    tacoargs.output = experiment.paths["features"]
+    tacoargs.hparams = ""
+    tacoargs.n_jobs = multiprocessing.cpu_count()
     # for now we always exploit the LJ settings
-    args.dataset = "LJSpeech-1.1"
-    args.voice = "female"
-    args.reader = "LJ"
-    args.merge_books = "True"
-    args.book = "northandsouth"
+    tacoargs.dataset = "LJSpeech-1.1"
+    tacoargs.voice = "female"
+    tacoargs.reader = "LJ"
+    tacoargs.merge_books = "True"
+    tacoargs.book = "northandsouth"
 
-    modified_hp = tacotron2.hparams.parse(args.hparams)
-    tacotron2.preprocess.run_preprocess(args, modified_hp)
+    modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
+    tacotron2.preprocess.run_preprocess(tacoargs, modified_hp)
 
 
 def train(experiment: Experiment, args) -> None:
