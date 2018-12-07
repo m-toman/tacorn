@@ -58,7 +58,6 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
     tacoargs = namedtuple(
         "tacoargs", "base_dir hparams dataset language voice reader merge_books book output n_jobs".split())
     tacoargs.base_dir = experiment.paths["feature_model"]
-    print("experiment: " + str(experiment.config))
     tacoargs.language = experiment.config["language"]
     tacoargs.output = experiment.paths["features"]
     tacoargs.hparams = ""
