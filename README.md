@@ -7,9 +7,11 @@ Currently aims to combine the Tacotron-2 implementation by Rayhane-mamah (https:
 
 ## Introduction
 
-Speech synthesis systems consist of multiple components, which have traditionally been developed manually and are increasingly being replaced by machine learning models.
+Speech synthesis systems consist of multiple components which have traditionally been developed manually and are increasingly being replaced by machine learning models.
 
 Here we define three components used in statistical parametric speech synthesis. We don't consider unit selection or hybrid unit selection systems or physical modeling based systems.
+
+Data flows along those components, producing intermediate representations which are then input to the next component. While in training we typically deal with large datasets and intermediate representations are typically stored on hard disk, we want to avoid this at synthesis time and aim to hold everything in memory.
 
 ### Text analysis
 Component to generate a linguistic specification from text input.
@@ -47,11 +49,14 @@ Currently under heavily development and not usable yet.
 
 ## Experiment folder contents
 
-- `raw`: input corpus - wavs and texts
-- `features`: holds preprocessed or intermediate features (e.g. mel spectrum, potentially labels containing linguistic specifications) if not stored in feature_model or wavegen_model.
-- `feature_model`: Working directory for the feature prediction component. 
-- `wavegen_model`: Working directory for the waveform generation component.
-- `synthesized_wavs`: Synthesized wavefiles 
+- `raw`: input corpus - wavs and texts.
+- `features`: holds preprocessed intermediate representations used for training.
+- `features/acoustic`: holds input features for acoustic model training, e.g. mel spectrum, linguistic specifications.
+- `features/wavegen`: holds input features for the waveform generation model training, e.g. mel spectrum and raw waveforms.
+- `models`: working directories for models/components.
+- `models/acoustic`: working directory for the acoustic feature prediction component.
+- `models/wavegen`: working directory for the waveform generation component.
+- `synthesized_wavs`: synthesized wavefiles.
 
 
 ## Process
@@ -68,7 +73,7 @@ Creates a new experiment directory.
 ### Preprocessing
 
 * Input: corpus in `raw` or given by parameter
-* Output: processed features in `features` or `feature_model`
+* Output: processed features in `features` or `acoustic_model`
 * Invocation: preprocess.py
 
 Preprocessing waveforms and orthographic transcription.
@@ -77,14 +82,14 @@ Preprocessing waveforms and orthographic transcription.
 ### Training
 
 * Input: processed features 
-* Output: trained models in `feature_model` and `wavegen_model`
+* Output: trained models in `acoustic_model` and `wavegen_model`
 * Invocation: train.py
 
 Train feature prediction and neural vocoder models.
 
 ### Synthesis
 
-* Input: text, trained models in `feature_model`and `wavegen_model`
+* Input: text, trained models in `acoustic_model`and `wavegen_model`
 * Output: wavefiles in `synthesized_wavs`
 * Invocation: synthesis.py
 

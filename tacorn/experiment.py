@@ -1,5 +1,6 @@
 """ Handles experiment folders. """
 import os
+import argparse
 import json
 from typing import MutableMapping
 import tacorn.fileutils as fu
@@ -10,7 +11,7 @@ class Experiment(object):
 
     def __init__(self):
         self.config = {"language": "en_US",
-                       "wavegen_model": "wavernn", "feature_model": "tacotron2"}
+                       "wavegen_model": "wavernn", "acoustic_model": "tacotron2"}
         self.paths: MutableMapping[str, str] = dict()
 
     def __repr__(self):
@@ -43,11 +44,13 @@ def _apply_file_structure(experiment_path, function):
     paths["root"] = function(experiment_path, "")
     paths["raw"] = function(experiment_path, "raw")
     paths["features"] = function(experiment_path, "features")
+    paths["acoustic_features"] = function(paths["features"], "acoustic")
+    paths["wavegen_features"] = function(paths["features"], "wavegen")
     paths["config"] = function(experiment_path, "config")
-    paths["feature_model"] = function(experiment_path, "feature_model")
-    paths["wavegen_model"] = function(experiment_path, "wavegen_model")
+    paths["models"] = function(experiment_path, "models")
+    paths["acoustic_model"] = function(paths["models"], "acoustic")
+    paths["wavegen_model"] = function(paths["models"], "wavegen")
     paths["synthesized_wavs"] = function(experiment_path, "synthesized_wavs")
-    # paths["wavernn_pretrained"] = function(experiment_path, "wavernn_pretrained")
     return paths
 
 
@@ -66,8 +69,11 @@ def check_file_structure(experiment_path):
 def check_config(config):
     """ Checks a configuration for validity.
         Returns the config if valid, otherwise raises an ValueError """
-    # TODO check type, content etc.
-    return vars(config)
+    # TODO check content etc.
+    if isinstance(config, argparse.Namespace):
+        return vars(config)
+    else:
+        return config
 
 
 def create(experiment_path, config) -> Experiment:
@@ -75,7 +81,7 @@ def create(experiment_path, config) -> Experiment:
     exp = Experiment()
     exp.paths = create_file_structure(experiment_path)
     new_config = check_config(config)
-    for key, value in enumerate(new_config):
+    for key, value in new_config.items():
         exp.config[key] = value
     return save(exp)
 

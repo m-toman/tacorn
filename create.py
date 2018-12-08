@@ -33,7 +33,7 @@ def get_pretrained_wavernn(model_id, targetdir):
 
 
 def _get_download_url(download_map, args):
-    return download_map[args.download_feature_model][args.feature_model]
+    return download_map[args.download_acoustic_model][args.acoustic_model]
 
 
 def main():
@@ -41,9 +41,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('experiment_dir',
                         help='Directory for the experiment to create.')
-    parser.add_argument('--feature_model', default="tacotron2",
-                        help='Model to use for feature prediction (tacotron2).')
-    parser.add_argument('--download_feature_model', default=None,
+    parser.add_argument('--acoustic_model', default="tacotron2",
+                        help='Model to use for acoustic feature prediction (tacotron2).')
+    parser.add_argument('--download_acoustic_model', default=None,
                         choices=consts.PRETRAINED_FEATURE_MODELS.keys(),
                         help=('Name of a pretrained feature model to download (%s)'
                               % (" ".join(consts.PRETRAINED_FEATURE_MODELS.keys()))))
@@ -66,17 +66,17 @@ def main():
     logger.info("Creating experiment at %s" % (args.experiment_dir))
     exp = experiment.create(args.experiment_dir, args)
     try:
-        module_wrapper = wrappers.load(exp.config["feature_model"])
+        module_wrapper = wrappers.load(exp.config["acoustic_model"])
         module_wrapper.create(exp, vars(args))
-        if args.download_feature_model:
+        if args.download_acoustic_model:
             logger.info("Downloading feature model %s" %
-                        (args.download_feature_model))
+                        (args.download_acoustic_model))
             module_wrapper.download_pretrained(
                 exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
         experiment.save(exp)
     except ModuleNotFoundError as mnfe:
         print("Module for %s not found, did you run install.sh?" %
-              (args.feature_model))
+              (args.acoustic_model))
     return 0
 
 

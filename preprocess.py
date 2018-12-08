@@ -30,8 +30,8 @@ def preprocess(exp: experiment.Experiment, args):
         stored in exp. """
     #_get_raw(exp, args)
     logger.info("Loading feature model wrapper %s for preprocessing" %
-                (exp.config["feature_model"]))
-    wrappers.load(exp.config["feature_model"]).preprocess(exp, vars(args))
+                (exp.config["acoustic_model"]))
+    wrappers.load(exp.config["acoustic_model"]).preprocess(exp, vars(args))
     logger.info("Preprocessing done")
 
 
