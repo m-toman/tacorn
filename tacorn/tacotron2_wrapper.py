@@ -77,7 +77,7 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
     args = namedtuple(
-        "tacoargs", "base_dir hparams tacotron_input name model input_dir tf_log_level".split())  # name?
+        "tacoargs", "base_dir hparams tacotron_input name model input_dir GTA restore summary_interval embedding_interval checkpoint_interval eval_interval tacotron_train_steps tf_log_level slack_url".split())  # name?
     args.base_dir = experiment.paths["acoustic_model"]
     args.hparams = ''
     # args.name
@@ -86,6 +86,14 @@ def train(experiment: Experiment, args) -> None:
     args.input_dir = experiment.paths["acoustic_features"]
     args.model = 'Tacotron'
     args.tf_log_level = 1
+    args.GTA = True
+    args.restore = True
+    args.summary_interval = 250
+    args.embedding_interval = 10000
+    args.checkpoint_interval = 5000
+    args.eval_interval = 10000
+    args.tacotron_train_steps = 150000
+    args.slack_url = None
 
     log_dir, hparams = tacotron2.train.prepare_run(args)
     tacotron2.tacotron.train.tacotron_train(args, log_dir, hparams)
