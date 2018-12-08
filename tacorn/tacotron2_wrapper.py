@@ -11,6 +11,7 @@ import tacorn.constants as constants
 from tacorn.experiment import Experiment
 
 sys.path.append('tacotron2')
+import tacotron2.train
 import tacotron2.preprocess
 import tacotron2.hparams
 
@@ -76,13 +77,15 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
     args = namedtuple(
-        "tacoargs", "base_dir hparams tacotron_input name model input_dir".split())  # name?
+        "tacoargs", "base_dir hparams tacotron_input name model input_dir tf_log_level".split())  # name?
     args.base_dir = experiment.paths["acoustic_model"]
     args.hparams = ''
     # args.name
-    args.tacotron_input = os.path.join(experiment.paths["acoustic_features"], "train.txt")
-    args.input_dir = experiment.path["acoustic_features"]
+    args.tacotron_input = os.path.join(
+        experiment.paths["acoustic_features"], "train.txt")
+    args.input_dir = experiment.paths["acoustic_features"]
     args.model = 'Tacotron'
+    args.tf_log_level = 1
 
     log_dir, hparams = tacotron2.train.prepare_run(args)
     tacotron2.tacotron.train.tacotron_train(args, log_dir, hparams)
