@@ -14,6 +14,7 @@ sys.path.append('tacotron2')
 import tacotron2.train
 import tacotron2.preprocess
 import tacotron2.hparams
+import tacotron2.tacotron.train
 
 
 def _check_pretrained_model(experiment: Experiment) -> None:
@@ -85,6 +86,7 @@ def train(experiment: Experiment, args) -> None:
         experiment.paths["acoustic_features"], "train.txt")
     args.input_dir = experiment.paths["acoustic_features"]
     args.model = 'Tacotron'
+    args.name = None
     args.tf_log_level = 1
     args.GTA = True
     args.restore = True
