@@ -114,7 +114,6 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     :param bool generate_features: Store acoustic features
     :param bool generate_waveforms: Generate a waveform from acoustic features using Griffin-Lim
     """
-    sentences = ["this is a test", "and yet another test"]
     # python synthesize.py --model Tacotron --tacotron_name Tacotron-2 --mode eval --text_list text_list.txt &> /dev/null
     tacoargs = namedtuple(
         "tacotacoargs", "mode model checkpoint output_dir mels_dir hparams name tacotron_name GTA".split())
@@ -130,8 +129,9 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     tacoargs.GTA = False
     #tacoargs.base_dir = ''
     #tacoargs.log_dir = None
-    print("tacoargs: " + str(tacoargs))
+    print("tacoargs: " + str(vars(tacoargs)))
     #taco_checkpoint, _, hparams = tacotron2.synthesize.prepare_run(tacoargs)
     modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
-    taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
-    tacotron2.tacotron.synthesize.tacotron_synthesize(tacoargs, hparams, tacoargs.checkpoint, sentences)
+    #taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
+    tacotron2.tacotron.synthesize.tacotron_synthesize(
+        tacoargs, modified_hp, tacoargs.checkpoint, sentences)

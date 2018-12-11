@@ -21,11 +21,12 @@ def synthesize(exp: experiment.Experiment, args) -> None:
     logger.info("Loading acoustic feature model wrapper %s for synthesis" %
                 (exp.config["acoustic_model"]))
     module_wrapper = wrappers.load(exp.config["acoustic_model"])
-    module_wrapper.generate(exp, sentences, generate_features=args.use_wavgen,
+    print(args)
+    module_wrapper.generate(exp, sentences, generate_features=args.use_wavegen,
                             generate_waveforms=(not args.use_wavegen))
     logger.info("Synthesis from acoustic feature model done")
 
-    #if args.use_wavegen
+    # if args.use_wavegen
     # TODO: check if intermediate features exist
     # TODO: synthesize from waveform gen model
     #    pass
