@@ -99,3 +99,14 @@ def train(experiment: Experiment, args) -> None:
 
     log_dir, hparams = tacotron2.train.prepare_run(args)
     tacotron2.tacotron.train.tacotron_train(args, log_dir, hparams)
+
+
+def generate(experiment: Experiment, generate_features: bool = True, generate_waveforms: bool = True) -> None:
+    """
+    Generates from the model.
+
+    :param Experiment experiment: The experiment to generate from.
+    :param bool generate_features: Store acoustic features
+    :param bool generate_waveforms: Generate a waveform from acoustic features using Griffin-Lim
+    """
+    pass
