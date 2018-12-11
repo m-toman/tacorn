@@ -15,11 +15,16 @@ import tacotron2.train
 import tacotron2.preprocess
 import tacotron2.hparams
 import tacotron2.tacotron.train
+import tacotron2.tacotron.synthesize
+import tacotron2.synthesize
+
+
+def _get_pretrained_folder(experiment: Experiment) -> str:
+    return os.path.join(experiment.paths["acoustic_model"], "logs-Tacotron", "taco_pretrained")
 
 
 def _check_pretrained_model(experiment: Experiment) -> None:
-    pretrained_dir = os.path.join(
-        experiment.paths["acoustic_model"], "logs-Tacotron", "taco_pretrained")
+    pretrained_dir = _get_pretrained_folder(experiment)
     checkpoint_file = os.path.join(pretrained_dir, "checkpoint")
     if not os.path.exists(pretrained_dir):
         raise FileNotFoundError(pretrained_dir)
@@ -101,7 +106,7 @@ def train(experiment: Experiment, args) -> None:
     tacotron2.tacotron.train.tacotron_train(args, log_dir, hparams)
 
 
-def generate(experiment: Experiment, generate_features: bool = True, generate_waveforms: bool = True) -> None:
+def generate(experiment: Experiment, sentences, generate_features: bool = True, generate_waveforms: bool = True) -> None:
     """
     Generates from the model.
 
@@ -109,4 +114,24 @@ def generate(experiment: Experiment, generate_features: bool = True, generate_wa
     :param bool generate_features: Store acoustic features
     :param bool generate_waveforms: Generate a waveform from acoustic features using Griffin-Lim
     """
-    pass
+    sentences = ["this is a test", "and yet another test"]
+    # python synthesize.py --model Tacotron --tacotron_name Tacotron-2 --mode eval --text_list text_list.txt &> /dev/null
+    tacoargs = namedtuple(
+        "tacotacoargs", "mode model checkpoint output_dir mels_dir hparams name tacotron_name GTA".split())
+    tacoargs.checkpoint = _get_pretrained_folder(experiment)
+    tacoargs.hparams = ''
+    tacoargs.name = "Tacotron"
+    tacoargs.tacotron_name = "Tacotron"
+    tacoargs.model = "Tacotron"
+    #tacoargs.input_dir = 'training_data/'
+    tacoargs.mels_dir = experiment.paths["wavegen_features"]
+    tacoargs.output_dir = experiment.paths["wavegen_features"]
+    tacoargs.mode = "eval"
+    tacoargs.GTA = False
+    #tacoargs.base_dir = ''
+    #tacoargs.log_dir = None
+    print("tacoargs: " + str(tacoargs))
+    #taco_checkpoint, _, hparams = tacotron2.synthesize.prepare_run(tacoargs)
+    modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
+    taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
+    tacotron2.tacotron.synthesize.tacotron_synthesize(tacoargs, hparams, tacoargs.checkpoint, sentences)

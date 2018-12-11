@@ -1,96 +1,54 @@
 import argparse
-import os
-import torch
-import librosa
-import sys
-from collections import namedtuple
+import logging
 
-import matplotlib
-matplotlib.use('Agg')
+import tacorn.wrappers as wrappers
+import tacorn.experiment as experiment
 
-from wavernn.model import Model
-from wavernn.model import bits
-from wavernn.utils import *
-import config
-import tacorn.fileutils as fu
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 
-sys.path.append('tacotron2')
-from tacotron2.synthesize import prepare_run
-from tacotron.synthesize import tacotron_synthesize
+def _get_sentences(args):
+    with open(args.sentences_file, 'rb') as f:
+        sentences = [l.decode("utf-8") for l in f.readlines()]
+    return sentences
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def synthesize(exp: experiment.Experiment, args) -> None:
+    """ Synthesizes inside an experiment folder. """
+    sentences = _get_sentences(args)
+    logger.info("Loading acoustic feature model wrapper %s for synthesis" %
+                (exp.config["acoustic_model"]))
+    module_wrapper = wrappers.load(exp.config["acoustic_model"])
+    module_wrapper.generate(exp, sentences, generate_features=args.use_wavgen,
+                            generate_waveforms=(not args.use_wavegen))
+    logger.info("Synthesis from acoustic feature model done")
 
+    #if args.use_wavegen
+    # TODO: check if intermediate features exist
+    # TODO: synthesize from waveform gen model
+    #    pass
 
-def synthesize(sentences, output_dir):
-    # Tacotron first
-    args = namedtuple(
-        "tacoargs", "mode model checkpoint output_dir mels_dir hparams name".split())
-    args.mode = "eval"
-    args.model = "Tacotron-2"
-    args.checkpoint = "pretrained/"
-    args.output_dir = "output"
-    args.mels_dir = "tacotron_output/eval"
-    args.base_dir = ''
-    args.input_dir = 'training_data/'
-    args.hparams = ''
-    args.name = "Tacotron-2"
-    args.log_dir = None
-    taco_checkpoint, _, hparams = prepare_run(args)
-    taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
-    tacotron_synthesize(args, hparams, taco_checkpoint, sentences)
-
-    # now WaveRNN
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(MODEL_PATH)
-
-    model = Model(rnn_dims=512, fc_dims=512, bits=bits, pad=2,
-                  upsample_factors=(5, 5, 11), feat_dims=80,
-                  compute_dims=128, res_out_dims=128, res_blocks=10).to(device)
-
-    print("Loading WaveRNN model from " + MODEL_PATH)
-    model.load_state_dict(torch.load(MODEL_PATH))
-
-
-    # mels_paths = [f for f in sorted(
-    #     os.listdir(args.mels_dir)) if f.endswith(".npy")]
-    map_path = os.path.join(args.mels_dir, 'map.txt')
-    f = open(map_path)
-    maps = f.readlines()
-    f.close()
-
-    mels_paths = [x.split('|')[1] for x in maps]
-    test_mels = [np.load(m).T for m in mels_paths]
-
-
-    fu.ensure_dir(output_dir)
-
-    for i, mel in enumerate(test_mels):
-        print('\nGenerating: %i/%i' % (i+1, len(test_mels)))
-        model.generate(mel, output_dir + f'/{i}_generated.wav')
 
 def main():
-    # TODO: use custom workdir directory etc. instead of
-    # original tacotron and wavernn paths
+    """ main function for synthesis. """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sentences_file', default=None,
-                        help='Input file containing sentences to synthesize')
-    parser.add_argument('--output_dir', default="synthesized_wavs",
-                        help='Output folder for synthesized wavs')
+    parser.add_argument('experiment_dir',
+                        help='Experiment directory.')
+    parser.add_argument('sentences_file',
+                        help='File containing sentences to synthesize')
+    parser.add_argument('--use_wavegen', default='True',
+                        help='Use the wavegen model for waveform generation, if False resort to e.g. Griffin-Lim')
     args = parser.parse_args()
-    isSentenceFile = False
 
-    if args.sentences_file is None:
-        sentences = ["Hello, World!",
-                     "How much wood would a woodchuck chuck if a woodchuck could chuck wood?"]
+    try:
+        exp = experiment.load(args.experiment_dir)
+    except Exception:
+        print("Invalid experiment folder given: %s" % (args.experiment_dir))
+        sys.exit(1)
 
-    else:
-        with open(args.sentences_file, 'rt') as fp:
-            sentences = [x.strip() for x in fp.readlines()]
-        isSentenceFile = True
-
-    synthesize(sentences, args.output_dir)
+    synthesize(exp, args)
 
 
 if __name__ == '__main__':

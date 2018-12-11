@@ -75,6 +75,7 @@ def main():
                 exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
         experiment.save(exp)
     except ModuleNotFoundError as mnfe:
+        print(mnfe)
         print("Module for %s not found, did you run install.sh?" %
               (args.acoustic_model))
     return 0
