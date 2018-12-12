@@ -15,7 +15,8 @@ def train(exp: experiment.Experiment, args) -> None:
     if args.model in ("acoustic", "both"):
         logger.info("Loading acoustic feature model wrapper %s for training" %
                     (exp.config["acoustic_model"]))
-        wrappers.load(exp.config["acoustic_model"]).train(exp, args)
+        module_wrapper = wrappers.load(exp.config["acoustic_model"])
+        module_wrapper.train(exp, vars(args))
         logger.info("Training acoustic feature model done")
         # TODO: generate intermediate features if successful
 
@@ -32,6 +33,8 @@ def main():
                         help='Experiment directory.')
     parser.add_argument('--model', default='both',
                         help='Which model to train: acoustic, wavegen, both. Default: both')
+    parser.add_argument('--acoustic_max_steps', default=150000,
+                        help='Maximum number of steps to train the acoustic model (including pretrained steps)')
     args = parser.parse_args()
 
     try:

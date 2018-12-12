@@ -82,28 +82,28 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
 
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
-    args = namedtuple(
+    tacoargs = namedtuple(
         "tacoargs", "base_dir hparams tacotron_input name model input_dir GTA restore summary_interval embedding_interval checkpoint_interval eval_interval tacotron_train_steps tf_log_level slack_url".split())  # name?
-    args.base_dir = experiment.paths["acoustic_model"]
-    args.hparams = ''
-    # args.name
-    args.tacotron_input = os.path.join(
+    tacoargs.base_dir = experiment.paths["acoustic_model"]
+    tacoargs.hparams = ''
+    # tacoargs.name
+    tacoargs.tacotron_input = os.path.join(
         experiment.paths["acoustic_features"], "train.txt")
-    args.input_dir = experiment.paths["acoustic_features"]
-    args.model = 'Tacotron'
-    args.name = None
-    args.tf_log_level = 1
-    args.GTA = True
-    args.restore = True
-    args.summary_interval = 250
-    args.embedding_interval = 10000
-    args.checkpoint_interval = 5000
-    args.eval_interval = 10000
-    args.tacotron_train_steps = 150000
-    args.slack_url = None
+    tacoargs.input_dir = experiment.paths["acoustic_features"]
+    tacoargs.model = 'Tacotron'
+    tacoargs.name = None
+    tacoargs.tf_log_level = 1
+    tacoargs.GTA = True
+    tacoargs.restore = True
+    tacoargs.summary_interval = 250
+    tacoargs.embedding_interval = 10000
+    tacoargs.checkpoint_interval = 1000
+    tacoargs.eval_interval = 1000
+    tacoargs.tacotron_train_steps = args["acoustic_max_steps"]
+    tacoargs.slack_url = None
 
-    log_dir, hparams = tacotron2.train.prepare_run(args)
-    tacotron2.tacotron.train.tacotron_train(args, log_dir, hparams)
+    log_dir, hparams = tacotron2.train.prepare_run(tacoargs)
+    tacotron2.tacotron.train.tacotron_train(tacoargs, log_dir, hparams)
 
 
 def generate(experiment: Experiment, sentences, generate_features: bool = True, generate_waveforms: bool = True) -> None:
@@ -116,7 +116,7 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     """
     # python synthesize.py --model Tacotron --tacotron_name Tacotron-2 --mode eval --text_list text_list.txt &> /dev/null
     tacoargs = namedtuple(
-        "tacotacoargs", "mode model checkpoint output_dir mels_dir hparams name tacotron_name GTA".split())
+        "tacoargs", "mode model checkpoint output_dir mels_dir hparams name tacotron_name GTA".split())
     tacoargs.checkpoint = _get_pretrained_folder(experiment)
     tacoargs.hparams = ''
     tacoargs.name = "Tacotron"
