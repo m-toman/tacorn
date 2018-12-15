@@ -145,9 +145,10 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     tacoargs.GTA = False
     #tacoargs.base_dir = ''
     #tacoargs.log_dir = None
-    print("tacoargs: " + str(vars(tacoargs)))
     #taco_checkpoint, _, hparams = tacotron2.synthesize.prepare_run(tacoargs)
     modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
     #taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
     tacotron2.tacotron.synthesize.tacotron_synthesize(
         tacoargs, modified_hp, tacoargs.checkpoint, sentences)
+    fu.copy_files(os.path.join(experiment.paths["wavegen_features"], "logs-eval", "wavs"),
+                  experiment.paths["synthesized_wavs"])
