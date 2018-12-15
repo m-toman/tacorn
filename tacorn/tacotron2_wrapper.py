@@ -5,6 +5,7 @@ import multiprocessing
 import zipfile
 from collections import namedtuple
 from typing import Mapping
+import tensorflow as tf
 
 import tacorn.fileutils as fu
 import tacorn.constants as constants
@@ -83,7 +84,7 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
     tacoargs = namedtuple(
-        "tacoargs", "base_dir hparams tacotron_input name model input_dir GTA restore summary_interval embedding_interval checkpoint_interval eval_interval tacotron_train_steps tf_log_level slack_url".split())  # name?
+        "tacoargs", "mels_dir output_dir mode base_dir hparams tacotron_input name model input_dir GTA restore summary_interval embedding_interval checkpoint_interval eval_interval tacotron_train_steps tf_log_level slack_url".split())  # name?
     tacoargs.base_dir = experiment.paths["acoustic_model"]
     tacoargs.hparams = ''
     # tacoargs.name
@@ -97,13 +98,28 @@ def train(experiment: Experiment, args) -> None:
     tacoargs.restore = True
     tacoargs.summary_interval = 250
     tacoargs.embedding_interval = 10000
-    tacoargs.checkpoint_interval = 1000
-    tacoargs.eval_interval = 1000
-    tacoargs.tacotron_train_steps = args["acoustic_max_steps"]
+    tacoargs.checkpoint_interval = 500
+    tacoargs.eval_interval = 500
+    tacoargs.tacotron_train_steps = int(args["acoustic_max_steps"])
     tacoargs.slack_url = None
 
+    tacoargs.mels_dir = experiment.paths["wavegen_features"]
+    tacoargs.output_dir = experiment.paths["wavegen_features"]
+    tacoargs.mode = 'synthesis'
+
     log_dir, hparams = tacotron2.train.prepare_run(tacoargs)
-    tacotron2.tacotron.train.tacotron_train(tacoargs, log_dir, hparams)
+    checkpoint = tacotron2.tacotron.train.tacotron_train(
+        tacoargs, log_dir, hparams)
+    tf.reset_default_graph()
+    input_path = tacotron2.synthesize.tacotron_synthesize(
+        tacoargs, hparams, checkpoint)
+    print("input path: " + input_path)
+
+
+def generate_wavegen_features(experiment: Experiment, args) -> None:
+    """ Generate features for the wavegen model. """
+    # TODO
+    return
 
 
 def generate(experiment: Experiment, sentences, generate_features: bool = True, generate_waveforms: bool = True) -> None:
