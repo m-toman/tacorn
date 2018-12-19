@@ -3,13 +3,16 @@ import os
 import sys
 import multiprocessing
 import zipfile
+import shutil
 from collections import namedtuple
 from typing import Mapping
 import tensorflow as tf
 
 import tacorn.fileutils as fu
 import tacorn.constants as constants
+import tacorn.experiment
 from tacorn.experiment import Experiment
+
 
 sys.path.append('tacotron2')
 import tacotron2.train
@@ -47,6 +50,8 @@ def download_pretrained(experiment: Experiment, url: str) -> None:
 
 def create(experiment: Experiment, args) -> None:
     """ Creates Tacotron-2 specific folders and configuration. """
+    # we have to overwrite the raw directory because this Taco2 implementation
+    # has fixed ideas about where the wavs shall be
     return
 
 
@@ -54,13 +59,13 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
     """ Preprocesses wavs and text, returns None or raises an Exception. """
     # bring data in format usable by Tacotron-2
     # for now just copy them over
-    raw_wav_dir = os.path.join(
+    tmp_wav_dir = os.path.join(
         experiment.paths["acoustic_model"], "LJSpeech-1.1", "wavs")
-    fu.ensure_dir(raw_wav_dir)
-    fu.copy_files(args["wav_dir"], raw_wav_dir)
-    raw_metadata_file = os.path.join(
+    fu.ensure_dir(tmp_wav_dir)
+    fu.copy_files(args["wav_dir"], tmp_wav_dir)
+    tmp_metadata_file = os.path.join(
         experiment.paths["acoustic_model"], "LJSpeech-1.1", "metadata.csv")
-    fu.copy_file(args["text_file"], raw_metadata_file)
+    fu.copy_file(args["text_file"], tmp_metadata_file)
 
     # run Tacotron-2 preprocessing
     tacoargs = namedtuple(
@@ -80,6 +85,13 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
     modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
     tacotron2.preprocess.run_preprocess(tacoargs, modified_hp)
 
+    # copy from temporary folders to raw folder
+    raw_wav_dir = experiment.paths["raw_wavs"]
+    raw_meta_dir = experiment.paths["raw_meta"]
+    fu.copy_files(tmp_wav_dir, raw_wav_dir)
+    fu.copy_file(tmp_meta_file, os.path.join(raw_meta_dir, "metadata.csv"))
+    shutil.rmtree(tmp_wav_dir)
+
 
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
@@ -98,7 +110,7 @@ def train(experiment: Experiment, args) -> None:
     tacoargs.restore = True
     tacoargs.summary_interval = 250
     tacoargs.embedding_interval = 10000
-    tacoargs.checkpoint_interval = 500
+    tacoargs.checkpoint_interval = 1000
     tacoargs.eval_interval = 500
     tacoargs.tacotron_train_steps = int(args["acoustic_max_steps"])
     tacoargs.slack_url = None

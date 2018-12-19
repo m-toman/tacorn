@@ -25,7 +25,7 @@ def _get_raw(exp: experiment.Experiment, args):
     return
 
 
-def preprocess(exp: experiment.Experiment, args):
+def preprocess_acoustic_model(exp: experiment.Experiment, args):
     """ Preprocesses data given in args using the experiment
         stored in exp. """
     #_get_raw(exp, args)
@@ -52,7 +52,7 @@ def main():
         print("Invalid experiment folder given: %s" % (args.experiment_dir))
         sys.exit(1)
 
-    preprocess(exp, args)
+    preprocess_acoustic_model(exp, args)
 
 
 if __name__ == '__main__':

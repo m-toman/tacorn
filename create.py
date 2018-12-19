@@ -32,6 +32,28 @@ def get_pretrained_wavernn(model_id, targetdir):
     return model_path
 
 
+def create_acoustic_model(exp: experiment.Experiment, args):
+    """ Loads and creates the acoustic model. """
+    module_wrapper = wrappers.load(exp.config["acoustic_model"])
+    module_wrapper.create(exp, vars(args))
+    if args.download_acoustic_model:
+        logger.info("Downloading feature model %s" %
+                    (args.download_acoustic_model))
+        module_wrapper.download_pretrained(
+            exp, _get_download_url(consts.PRETRAINED_ACOUSTIC_MODELS, args))
+
+
+def create_wavegen_model(exp: experiment.Experiment, args):
+    """ Loads and creates the wavegen model. """
+    module_wrapper = wrappers.load(exp.config["wavegen_model"])
+    module_wrapper.create(exp, vars(args))
+    if args.download_acoustic_model:
+        logger.info("Downloading wavegen model %s" %
+                    (args.download_wavegen_model))
+        module_wrapper.download_pretrained(
+            exp, _get_download_url(consts.PRETRAINED_WAVEGEN_MODELS, args))
+
+
 def _get_download_url(download_map, args):
     return download_map[args.download_acoustic_model][args.acoustic_model]
 
@@ -44,11 +66,15 @@ def main():
     parser.add_argument('--acoustic_model', default="tacotron2",
                         help='Model to use for acoustic feature prediction (tacotron2).')
     parser.add_argument('--download_acoustic_model', default=None,
-                        choices=consts.PRETRAINED_FEATURE_MODELS.keys(),
+                        choices=consts.PRETRAINED_ACOUSTIC_MODELS.keys(),
                         help=('Name of a pretrained feature model to download (%s)'
-                              % (" ".join(consts.PRETRAINED_FEATURE_MODELS.keys()))))
-    parser.add_argument('--wavegen_model', default="none",
-                        help='Model to use for waveform generation (wavernn or none). Default: none')
+                              % (" ".join(consts.PRETRAINED_ACOUSTIC_MODELS.keys()))))
+    parser.add_argument('--wavegen_model', default=None,
+                        help='Model to use for waveform generation (wavernn_alt). Default: none')
+    parser.add_argument('--download_wavegen_model', default=None,
+                        choices=consts.PRETRAINED_WAVEGEN_MODELS.keys(),
+                        help=('Name of a pretrained wavegen model to download (%s)'
+                              % (" ".join(consts.PRETRAINED_WAVEGEN_MODELS.keys()))))
     parser.add_argument('--force', action='store_const', const=True,
                         help='Forces creation of this experiment, deleting an existing experiment if necessary')
     args = parser.parse_args()
@@ -66,13 +92,9 @@ def main():
     logger.info("Creating experiment at %s" % (args.experiment_dir))
     exp = experiment.create(args.experiment_dir, args)
     try:
-        module_wrapper = wrappers.load(exp.config["acoustic_model"])
-        module_wrapper.create(exp, vars(args))
-        if args.download_acoustic_model:
-            logger.info("Downloading feature model %s" %
-                        (args.download_acoustic_model))
-            module_wrapper.download_pretrained(
-                exp, _get_download_url(consts.PRETRAINED_FEATURE_MODELS, args))
+        create_acoustic_model(exp, args)
+        if args.wavegen_model:
+            create_wavegen_model(exp, args)
         experiment.save(exp)
     except ModuleNotFoundError as mnfe:
         print(mnfe)

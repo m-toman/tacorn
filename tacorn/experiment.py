@@ -43,6 +43,8 @@ def _apply_file_structure(experiment_path, function):
     paths = {}
     paths["root"] = function(experiment_path, "")
     paths["raw"] = function(experiment_path, "raw")
+    paths["raw_wavs"] = function(paths["raw"], "wavs")
+    paths["raw_meta"] = function(paths["raw"], "meta")
     paths["features"] = function(experiment_path, "features")
     paths["acoustic_features"] = function(paths["features"], "acoustic")
     paths["wavegen_features"] = function(paths["features"], "wavegen")
@@ -72,8 +74,7 @@ def check_config(config):
     # TODO check content etc.
     if isinstance(config, argparse.Namespace):
         return vars(config)
-    else:
-        return config
+    return config
 
 
 def create(experiment_path, config) -> Experiment:

@@ -20,10 +20,12 @@ def train(exp: experiment.Experiment, args) -> None:
         logger.info("Training acoustic feature model done")
         # TODO: generate intermediate features if successful
 
-    if args.model in ("wavegen", "both"):
+    if args.model in ("wavegen", "both") and exp.config["wavegen_model"]:
         # TODO: check if intermediate features exist
-        # TODO: train waveform gen model
-        pass
+        logger.info("Loading waveform generation model wrapper %s for training" %
+                    (exp.config["wavegen_model"]))
+        module_wrapper = wrappers.load(exp.config["wavegen_model"])
+        module_wrapper.train(exp, vars(args))
 
 
 def main():

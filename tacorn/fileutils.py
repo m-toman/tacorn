@@ -23,6 +23,11 @@ def copy_file(src, dst):
     shutil.copyfile(src, dst)
 
 
+def move_file(src, dst):
+    """ Moves a file or folder from src to dst. """
+    shutil.move(src, dst)
+
+
 def download_file(url, target):
     """ Downloads file from url into target file. """
     with urllib.request.urlopen(url) as response, open(target, 'wb') as out_file:
