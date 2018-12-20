@@ -37,25 +37,21 @@ def create_acoustic_model(exp: experiment.Experiment, args):
     module_wrapper = wrappers.load(exp.config["acoustic_model"])
     module_wrapper.create(exp, vars(args))
     if args.download_acoustic_model:
-        logger.info("Downloading feature model %s" %
-                    (args.download_acoustic_model))
+        logger.info("Downloading acoustic model %s for model type %s" %
+                    (args.download_acoustic_model, args.acoustic_model))
         module_wrapper.download_pretrained(
-            exp, _get_download_url(consts.PRETRAINED_ACOUSTIC_MODELS, args))
+            exp, consts.PRETRAINED_ACOUSTIC_MODELS[args.download_acoustic_model][args.acoustic_model])
 
 
 def create_wavegen_model(exp: experiment.Experiment, args):
     """ Loads and creates the wavegen model. """
     module_wrapper = wrappers.load(exp.config["wavegen_model"])
     module_wrapper.create(exp, vars(args))
-    if args.download_acoustic_model:
-        logger.info("Downloading wavegen model %s" %
-                    (args.download_wavegen_model))
+    if args.download_wavegen_model:
+        logger.info("Downloading wavegen model %s for model type %s" %
+                    (args.download_wavegen_model, args.wavegen_model))
         module_wrapper.download_pretrained(
-            exp, _get_download_url(consts.PRETRAINED_WAVEGEN_MODELS, args))
-
-
-def _get_download_url(download_map, args):
-    return download_map[args.download_acoustic_model][args.acoustic_model]
+            exp, consts.PRETRAINED_WAVEGEN_MODELS[args.download_wavegen_model][args.wavegen_model])
 
 
 def main():
