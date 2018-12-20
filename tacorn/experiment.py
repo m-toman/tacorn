@@ -48,11 +48,17 @@ def _apply_file_structure(experiment_path, function):
     paths["features"] = function(experiment_path, "features")
     paths["acoustic_features"] = function(paths["features"], "acoustic")
     paths["wavegen_features"] = function(paths["features"], "wavegen")
+    paths["acoustic2wavegen_features"] = function(
+        paths["features"], "acoustic2wavegen")
+    paths["acoustic2wavegen_training_features"] = function(
+        paths["acoustic2wavegen_features"], "training")
+    paths["acoustic2wavegen_synthesis_features"] = function(
+        paths["acoustic2wavegen_features"], "synthesis")
     paths["config"] = function(experiment_path, "config")
     paths["models"] = function(experiment_path, "models")
     paths["acoustic_model"] = function(paths["models"], "acoustic")
     paths["wavegen_model"] = function(paths["models"], "wavegen")
-    paths["synthesized_wavs"] = function(experiment_path, "synthesized_wavs")
+    paths["synthesized_wavs"] = function(experiment_path, "synthesized")
     return paths
 
 

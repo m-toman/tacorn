@@ -1,18 +1,24 @@
 """ Wraps functionality of the alternative WaveRNN model. """
 import os
 import sys
-import multiprocessing
 import zipfile
+import logging
 from collections import namedtuple
 from typing import Mapping
-import tensorflow as tf
+# import tensorflow as tf
+import numpy as np
 
 import tacorn.fileutils as fu
-import tacorn.constants as constants
+# import tacorn.constants as constants
 from tacorn.experiment import Experiment
 
 sys.path.append('wavernn_alt')
 import wavernn_alt.preprocess as wpreproc
+
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s')
+LOGGER = logging.getLogger(__name__)
 
 
 def _get_pretrained_folder(experiment: Experiment) -> str:
@@ -61,41 +67,21 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
     # raw_wavs for raw wavs
     # wavegen_features
     # wpreproc.hp.override_from_dict(otherhparams.values())
+    in_feat_dir = experiment.paths["acoustic2wavegen_training_features"]
+    out_feat_dir = experiment.paths["wavegen_features"]
+    feat_files = [feat_file for feat_file in os.listdir(
+        in_feat_dir) if feat_file.endswith(".npy")]
+    for feat_file in feat_files:
+        LOGGER.info("Converting %s" % (feat_file))
+        mel = np.load(os.path.join(in_feat_dir, feat_file)).T
+        np.save(os.path.join(out_feat_dir, feat_file), mel.astype(np.float32))
 
 
 def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
-    tacoargs = namedtuple(
-        "tacoargs", "mels_dir output_dir mode base_dir hparams tacotron_input name model input_dir GTA restore summary_interval embedding_interval checkpoint_interval eval_interval tacotron_train_steps tf_log_level slack_url".split())  # name?
-    tacoargs.base_dir = experiment.paths["acoustic_model"]
-    tacoargs.hparams = ''
-    # tacoargs.name
-    tacoargs.tacotron_input = os.path.join(
-        experiment.paths["acoustic_features"], "train.txt")
-    tacoargs.input_dir = experiment.paths["acoustic_features"]
-    tacoargs.model = 'Tacotron'
-    tacoargs.name = None
-    tacoargs.tf_log_level = 1
-    tacoargs.GTA = True
-    tacoargs.restore = True
-    tacoargs.summary_interval = 250
-    tacoargs.embedding_interval = 10000
-    tacoargs.checkpoint_interval = 1000
-    tacoargs.eval_interval = 500
-    tacoargs.tacotron_train_steps = int(args["acoustic_max_steps"])
-    tacoargs.slack_url = None
-
-    tacoargs.mels_dir = experiment.paths["wavegen_features"]
-    tacoargs.output_dir = experiment.paths["wavegen_features"]
-    tacoargs.mode = 'synthesis'
-
-    log_dir, hparams = tacotron2.train.prepare_run(tacoargs)
-    checkpoint = tacotron2.tacotron.train.tacotron_train(
-        tacoargs, log_dir, hparams)
-    tf.reset_default_graph()
-    input_path = tacotron2.synthesize.tacotron_synthesize(
-        tacoargs, hparams, checkpoint)
-    print("input path: " + input_path)
+    # TODO: only do conversion if necessary?
+    # TODO: train from GTA or from raw?
+    convert_training_data(experiment, args)
 
 
 def generate_wavegen_features(experiment: Experiment, args) -> None:

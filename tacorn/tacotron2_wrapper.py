@@ -89,7 +89,7 @@ def preprocess(experiment: Experiment, args: Mapping) -> None:
     raw_wav_dir = experiment.paths["raw_wavs"]
     raw_meta_dir = experiment.paths["raw_meta"]
     fu.copy_files(tmp_wav_dir, raw_wav_dir)
-    fu.copy_file(tmp_meta_file, os.path.join(raw_meta_dir, "metadata.csv"))
+    #fu.copy_file(tmp_meta_file, os.path.join(raw_meta_dir, "metadata.csv"))
     shutil.rmtree(tmp_wav_dir)
 
 
@@ -115,16 +115,22 @@ def train(experiment: Experiment, args) -> None:
     tacoargs.tacotron_train_steps = int(args["acoustic_max_steps"])
     tacoargs.slack_url = None
 
-    tacoargs.mels_dir = experiment.paths["wavegen_features"]
-    tacoargs.output_dir = experiment.paths["wavegen_features"]
+    tacoargs.mels_dir = experiment.paths["acoustic2wavegen_training_features"]
+    tacoargs.output_dir = experiment.paths["acoustic2wavegen_training_features"]
     tacoargs.mode = 'synthesis'
 
     log_dir, hparams = tacotron2.train.prepare_run(tacoargs)
+
+    # run training
     checkpoint = tacotron2.tacotron.train.tacotron_train(
         tacoargs, log_dir, hparams)
     tf.reset_default_graph()
+
+    # generate GTA features for wavegen training
     input_path = tacotron2.synthesize.tacotron_synthesize(
         tacoargs, hparams, checkpoint)
+    fu.move_files(os.path.join(tacoargs.mels_dir, "natural"),
+                  tacoargs.mels_dir, lambda x: x.endswith(".npy"))
     print("input path: " + input_path)
 
 

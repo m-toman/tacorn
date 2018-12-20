@@ -1,9 +1,10 @@
 # tacorn
 
-WARNING: not usable yet, check the fatchord_model branch for a sort-of-usable version.
+WARNING: Currently only supports Griffin-Lim synthesis from the Tacotron-2 repository.
 
 TTS framework bridging different 2018/2019 state-of-the-art open source methods.
-Currently aims to combine the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with an WaveRNN implementation adopted from https://github.com/fatchord/WaveRNN with the overall goal to more easily allow swapping out single components.
+Currently aims to combine the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with a fork of the alternative WaveRNN implementation by fatchord (https://github.com/fatchord/WaveRNN).
+The overall goal is to more easily allow swapping out single components.
 
 ## Introduction
 
@@ -43,20 +44,23 @@ The main disadvantage of neural vocoders is that they are yet another model that
 Here we focus on WaveRNN although the currently included Tacotron-2 implementation by Rayhane-mamah also includes WaveNet.
 
 
-## Status
-
-Currently under heavily development and not usable yet.
 
 ## Experiment folder contents
 
-- `raw`: input corpus - wavs and texts.
-- `features`: holds preprocessed intermediate representations used for training.
-- `features/acoustic`: holds input features for acoustic model training, e.g. mel spectrum, linguistic specifications.
+- `config`: holds configurations for the experiment and the components.
+- `raw`: input corpus.
+- `raw/wavs`: input waveforms.
+- `raw/meta`: input meta information, typically at least a transcription.
+- `features`: holds intermediate representations used in training and synthesis.
+- `features/acoustic`: holds preprocessed features for acoustic model training, e.g. mel spectrum, linguistic specifications.
+- `features/acoustic2wavegen`: holds output features from acoustic used as input to wavegen.
+- `features/acoustic2wavegen/training`: holds output features from acoustic used as input to wavegen training (e.g. ground-truth-aligned mel spectra).
+- `features/acoustic2wavegen/synthesis`: holds output features from acoustic used as input to wavegen synthesis (e.g. mel spectra).
 - `features/wavegen`: holds input features for the waveform generation model training, e.g. mel spectrum and raw waveforms.
 - `models`: working directories for models/components.
 - `models/acoustic`: working directory for the acoustic feature prediction component.
 - `models/wavegen`: working directory for the waveform generation component.
-- `synthesized_wavs`: synthesized wavefiles.
+- `synthesized`: synthesized wavefiles and metainformation.
 
 
 ## Process

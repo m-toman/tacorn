@@ -18,6 +18,15 @@ def copy_files(src, dst):
                         os.path.join(dst, file))
 
 
+def move_files(src, dst, filter_predicate=lambda x: True):
+    """ Moves all files in src into dst if they satisfy filter_predicate. """
+    if os.path.exists(src) and os.path.exists(dst):
+        for filename in os.listdir(src):
+            if filter_predicate(filename):
+                shutil.move(os.path.join(src, filename),
+                            os.path.join(dst, filename))
+
+
 def copy_file(src, dst):
     """ Copies a file from src to dst. """
     shutil.copyfile(src, dst)
