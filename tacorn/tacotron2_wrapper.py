@@ -129,8 +129,10 @@ def train(experiment: Experiment, args) -> None:
     # generate GTA features for wavegen training
     input_path = tacotron2.synthesize.tacotron_synthesize(
         tacoargs, hparams, checkpoint)
-    fu.move_files(os.path.join(tacoargs.mels_dir, "natural"),
-                  tacoargs.mels_dir, lambda x: x.endswith(".npy"))
+    # fu.move_files(os.path.join(tacoargs.mels_dir, "natural"),
+    #              tacoargs.mels_dir, lambda x: x.endswith(".npy"))
+    fu.copy_file(os.path.join(tacoargs.mels_dir, "natural", "map.txt"),
+                 os.path.join(tacoargs.mels_dir, "map.txt"))
     print("input path: " + input_path)
 
 
