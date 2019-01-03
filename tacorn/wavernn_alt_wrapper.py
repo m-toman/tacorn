@@ -70,8 +70,8 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
     map_file = os.path.join(
         experiment.paths["acoustic2wavegen_training_features"], "map.txt")
     output_dir = experiment.paths["wavegen_features"]
-    output_wav_dir = os.path.join(wavegen_features_folder, "wav")
-    output_mel_dir = os.path.join(wavegen_features_folder, "mel")
+    output_wav_dir = os.path.join(output_dir, "wav")
+    output_mel_dir = os.path.join(output_dir, "mel")
     fu.ensure_dir(output_wav_dir)
     fu.ensure_dir(output_mel_dir)
 
@@ -85,10 +85,11 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
         (audio_file, mel_file, gta_file, _, _) = line
         fileid = "%05d" % (i)
         LOGGER.info("Converting %s and %s" % (audio_file, gta_file))
-        gta_mel = np.load(os.path.join(gta_file)).T
-        audio, mel = wpreproc.get_wav_mel(audio_mel)
-        np.save(os.path.join(out_mel_dir, fileid), gta_mel.astype(np.float32))
-        np.save(os.path.join(out_wav_dir, fileid), audio.astype(np.float32))
+        gta_mel = np.load(gta_file.decode("utf-8")).T
+        audio, mel = wpreproc.get_wav_mel(audio_file.decode("utf-8"))
+        np.save(os.path.join(output_mel_dir, fileid),
+                gta_mel.astype(np.float32))
+        np.save(os.path.join(output_wav_dir, fileid), audio.astype(np.float32))
 
 
 def train(experiment: Experiment, args) -> None:
