@@ -21,6 +21,7 @@ import wavernn_alt.train as wtrain
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
 LOGGER = logging.getLogger(__name__)
+NUM_TEST_FILES = 4
 
 
 def _get_pretrained_folder(experiment: Experiment) -> str:
@@ -72,8 +73,10 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
     output_dir = experiment.paths["wavegen_features"]
     output_wav_dir = os.path.join(output_dir, "wav")
     output_mel_dir = os.path.join(output_dir, "mel")
+    output_test_dir = os.path.join(output_dir, "test")
     fu.ensure_dir(output_wav_dir)
     fu.ensure_dir(output_mel_dir)
+    fu.ensure_dir(output_test_dir)
 
     if not os.path.exists(map_file):
         # in future we might find the files by some other means
@@ -88,12 +91,17 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
         gta_mel = np.load(gta_file.decode("utf-8")).T
         #audio, mel = wpreproc.get_wav_mel(audio_file.decode("utf-8"))
         audio = wpreproc.get_wav(audio_file.decode("utf-8"))
-        print("gta_mel: " + str(gta_mel.shape))
-        print("audio: " + str(audio.shape))
-        np.save(os.path.join(output_mel_dir, fileid),
-                gta_mel.astype(np.float32))
-        np.save(os.path.join(output_wav_dir, fileid), audio)
-        dataset_ids.append(fileid)
+
+        if i < NUM_TEST_FILES:
+            np.save(os.path.join(output_test_dir, "test_{}_mel.npy".format(
+                i)), gta_mel.astype(np.float32))
+            np.save(os.path.join(output_test_dir,
+                                 "test_{}_wav.npy".format(i)), audio)
+        else:
+            np.save(os.path.join(output_mel_dir, fileid),
+                    gta_mel.astype(np.float32))
+            np.save(os.path.join(output_wav_dir, fileid), audio)
+            dataset_ids.append(fileid)
 
     with open(os.path.join(output_dir, 'dataset_ids.pkl'), 'wb') as f:
         pickle.dump(dataset_ids, f)
