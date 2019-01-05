@@ -106,7 +106,7 @@ def train(experiment: Experiment, args) -> None:
     tacoargs.model = 'Tacotron'
     tacoargs.name = None
     tacoargs.tf_log_level = 1
-    tacoargs.GTA = True
+    tacoargs.GTA = 'True'
     tacoargs.restore = True
     tacoargs.summary_interval = 250
     tacoargs.embedding_interval = 10000
@@ -131,7 +131,7 @@ def train(experiment: Experiment, args) -> None:
         tacoargs, hparams, checkpoint)
     # fu.move_files(os.path.join(tacoargs.mels_dir, "natural"),
     #              tacoargs.mels_dir, lambda x: x.endswith(".npy"))
-    fu.copy_file(os.path.join(tacoargs.mels_dir, "natural", "map.txt"),
+    fu.copy_file(os.path.join(tacoargs.mels_dir, "gta", "map.txt"),
                  os.path.join(tacoargs.mels_dir, "map.txt"))
     print("input path: " + input_path)
 

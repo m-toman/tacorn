@@ -3,6 +3,7 @@ import os
 import sys
 import zipfile
 import logging
+import pickle
 from collections import namedtuple
 from typing import Mapping
 # import tensorflow as tf
@@ -14,6 +15,7 @@ from tacorn.experiment import Experiment
 
 sys.path.append('wavernn_alt')
 import wavernn_alt.preprocess as wpreproc
+import wavernn_alt.train as wtrain
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -40,8 +42,7 @@ def _check_pretrained_model(experiment: Experiment) -> None:
 
 def download_pretrained(experiment: Experiment, url: str) -> None:
     """ Downloads a pretrained model. """
-    pretrained_dir = os.path.join(
-        experiment.paths["wavegen_model"], "pretrained")
+    pretrained_dir = _get_pretrained_folder(experiment)
     pretrained_zip = os.path.join(pretrained_dir, "wavernnalt_pretrained.zip")
     fu.ensure_dir(pretrained_dir)
     fu.download_file(url, pretrained_zip)
@@ -63,10 +64,9 @@ def create(experiment: Experiment, args) -> None:
 
 def convert_training_data(experiment: Experiment, args: Mapping) -> None:
     """ Converts output of acoustic model for training, returns None or raises an Exception. """
-    # wavegen_features for output of acoustic model
-    # raw_wavs for raw wavs
-    # wavegen_features
+    # TODO: load voice specific hparams
     # wpreproc.hp.override_from_dict(otherhparams.values())
+    dataset_ids = []
     map_file = os.path.join(
         experiment.paths["acoustic2wavegen_training_features"], "map.txt")
     output_dir = experiment.paths["wavegen_features"]
@@ -86,10 +86,17 @@ def convert_training_data(experiment: Experiment, args: Mapping) -> None:
         fileid = "%05d" % (i)
         LOGGER.info("Converting %s and %s" % (audio_file, gta_file))
         gta_mel = np.load(gta_file.decode("utf-8")).T
-        audio, mel = wpreproc.get_wav_mel(audio_file.decode("utf-8"))
+        #audio, mel = wpreproc.get_wav_mel(audio_file.decode("utf-8"))
+        audio = wpreproc.get_wav(audio_file.decode("utf-8"))
+        print("gta_mel: " + str(gta_mel.shape))
+        print("audio: " + str(audio.shape))
         np.save(os.path.join(output_mel_dir, fileid),
                 gta_mel.astype(np.float32))
-        np.save(os.path.join(output_wav_dir, fileid), audio.astype(np.float32))
+        np.save(os.path.join(output_wav_dir, fileid), audio)
+        dataset_ids.append(fileid)
+
+    with open(os.path.join(output_dir, 'dataset_ids.pkl'), 'wb') as f:
+        pickle.dump(dataset_ids, f)
 
 
 def train(experiment: Experiment, args) -> None:
@@ -97,6 +104,12 @@ def train(experiment: Experiment, args) -> None:
     # TODO: only do conversion if necessary?
     # TODO: train from GTA or from raw?
     convert_training_data(experiment, args)
+    features_dir = experiment.paths["wavegen_features"]
+    pretrained_dir = _get_pretrained_folder(experiment)
+    checkpoint_file = os.path.join(pretrained_dir, "checkpoint.pth")
+    if not os.path.exists(checkpoint_file):
+        checkpoint_file = None
+    wtrain.main(features_dir, pretrained_dir, checkpoint_file)
 
 
 def generate_wavegen_features(experiment: Experiment, args) -> None:
