@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _get_sentences(args):
     with open(args.sentences_file, 'rb') as f:
-        sentences = [l.decode("utf-8") for l in f.readlines()]
+        sentences = [l.decode("utf-8").rstrip() for l in f.readlines()]
     return sentences
 
 
@@ -21,16 +21,14 @@ def synthesize(exp: experiment.Experiment, args) -> None:
     sentences = _get_sentences(args)
     logger.info("Loading acoustic feature model wrapper %s for synthesis" %
                 (exp.config["acoustic_model"]))
-    module_wrapper = wrappers.load(exp.config["acoustic_model"])
-    print(args)
-    module_wrapper.generate(exp, sentences, generate_features=args.use_wavegen,
-                            generate_waveforms=(not args.use_wavegen))
+    acoustic_module_wrapper = wrappers.load(exp.config["acoustic_model"])
+    acoustic_module_wrapper.generate(exp, sentences, generate_features=args.use_wavegen,
+                                     generate_waveforms=(not args.use_wavegen))
     logger.info("Synthesis from acoustic feature model done")
 
-    # if args.use_wavegen
-    # TODO: check if intermediate features exist
-    # TODO: synthesize from waveform gen model
-    #    pass
+    if args.use_wavegen:
+        wavegen_module_wrapper = wrappers.load(exp.config["wavegen_model"])
+        wavegen_module_wrapper.generate(exp)
 
 
 def main():

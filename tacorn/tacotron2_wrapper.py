@@ -14,7 +14,7 @@ import tacorn.experiment
 from tacorn.experiment import Experiment
 
 
-sys.path.append('tacotron2')
+sys.path.insert(0, 'tacotron2')
 import tacotron2.train
 import tacotron2.preprocess
 import tacotron2.hparams
@@ -159,8 +159,8 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     tacoargs.tacotron_name = "Tacotron"
     tacoargs.model = "Tacotron"
     #tacoargs.input_dir = 'training_data/'
-    tacoargs.mels_dir = experiment.paths["wavegen_features"]
-    tacoargs.output_dir = experiment.paths["wavegen_features"]
+    tacoargs.mels_dir = experiment.paths["acoustic2wavegen_features"]
+    tacoargs.output_dir = experiment.paths["acoustic2wavegen_features"]
     tacoargs.mode = "eval"
     tacoargs.GTA = False
     #tacoargs.base_dir = ''
@@ -170,5 +170,8 @@ def generate(experiment: Experiment, sentences, generate_features: bool = True, 
     #taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
     tacotron2.tacotron.synthesize.tacotron_synthesize(
         tacoargs, modified_hp, tacoargs.checkpoint, sentences)
-    fu.copy_files(os.path.join(experiment.paths["wavegen_features"], "logs-eval", "wavs"),
-                  experiment.paths["synthesized_wavs"])
+    output_dir = os.path.join(
+        experiment.paths["synthesized_wavs"], "griffinlim")
+    fu.ensure_dir(output_dir)
+    fu.copy_files(os.path.join(
+        experiment.paths["acoustic2wavegen_features"], "logs-eval", "wavs"), output_dir)

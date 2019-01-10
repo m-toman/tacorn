@@ -13,9 +13,10 @@ import tacorn.fileutils as fu
 # import tacorn.constants as constants
 from tacorn.experiment import Experiment
 
-sys.path.append('wavernn_alt')
+#sys.path.insert(0, 'wavernn_alt')
 import wavernn_alt.preprocess as wpreproc
 import wavernn_alt.train as wtrain
+import wavernn_alt.synthesize as wsynth
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -120,39 +121,26 @@ def train(experiment: Experiment, args) -> None:
     wtrain.main(features_dir, pretrained_dir, checkpoint_file)
 
 
-def generate_wavegen_features(experiment: Experiment, args) -> None:
-    """ Generate features for the wavegen model. """
-    # TODO
-    return
-
-
-def generate(experiment: Experiment, sentences, generate_features: bool=True, generate_waveforms: bool=True) -> None:
+def generate(experiment: Experiment, sentences=None) -> None:
     """
-    Generates from the model.
+    Generates waveforms from existing acoustic features.
 
     :param Experiment experiment: The experiment to generate from.
-    :param bool generate_features: Store acoustic features
-    :param bool generate_waveforms: Generate a waveform from acoustic features using Griffin-Lim
+    :param sentences: List of feature files to synthesize. If None synthesizes all files in the feature folder. 
     """
-    # python synthesize.py --model Tacotron --tacotron_name Tacotron-2 --mode eval --text_list text_list.txt &> /dev/null
-    tacoargs = namedtuple(
-        "tacoargs", "mode model checkpoint output_dir mels_dir hparams name tacotron_name GTA".split())
-    tacoargs.checkpoint = _get_pretrained_folder(experiment)
-    tacoargs.hparams = ''
-    tacoargs.name = "Tacotron"
-    tacoargs.tacotron_name = "Tacotron"
-    tacoargs.model = "Tacotron"
-    # tacoargs.input_dir = 'training_data/'
-    tacoargs.mels_dir = experiment.paths["wavegen_features"]
-    tacoargs.output_dir = experiment.paths["wavegen_features"]
-    tacoargs.mode = "eval"
-    tacoargs.GTA = False
-    # tacoargs.base_dir = ''
-    # tacoargs.log_dir = None
-    # taco_checkpoint, _, hparams = tacotron2.synthesize.prepare_run(tacoargs)
-    modified_hp = tacotron2.hparams.hparams.parse(tacoargs.hparams)
-    # taco_checkpoint = os.path.join("tacotron2", taco_checkpoint)
-    tacotron2.tacotron.synthesize.tacotron_synthesize(
-        tacoargs, modified_hp, tacoargs.checkpoint, sentences)
-    fu.copy_files(os.path.join(experiment.paths["wavegen_features"], "logs-eval", "wavs"),
-                  experiment.paths["synthesized_wavs"])
+    mels_dir = experiment.paths["acoustic2wavegen_features"]
+    output_dir = os.path.join(
+        experiment.paths["synthesized_wavs"], "wavernn_alt")
+    fu.ensure_dir(output_dir)
+    pretrained_dir = _get_pretrained_folder(experiment)
+    checkpoint_file = os.path.join(pretrained_dir, "checkpoint.pth")
+    map_file = os.path.join(mels_dir, "eval", "map.txt")
+    print(map_file)
+    map_content = np.genfromtxt(map_file, dtype=None, delimiter='|')
+    for i, line in enumerate(map_content):
+        (text, mel_file, _) = line
+        LOGGER.info("Generating waveform from %s with text: %s" % (line, text))
+        mel_file = mel_file.decode("utf-8")
+        mel = np.load(mel_file).T
+        output_file = os.path.join(output_dir, os.path.basename(mel_file))
+        wsynth.main(mel, checkpoint_file, output_file)
