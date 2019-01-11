@@ -61,7 +61,8 @@ def create(experiment: Experiment, args) -> None:
     # copy default hparams if not exists yet
     hparams_path = _get_hparams_path(experiment)
     if not os.path.exists(hparams_path):
-        fu.copy_file(os.path.join("wavernn_alt", "hparams.py"), hparams_path)
+        fu.copy_file(os.path.join(
+            "wavernn_alt", "hyperparams.py"), hparams_path)
 
 
 def convert_training_data(experiment: Experiment, args: Mapping) -> None:
