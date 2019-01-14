@@ -51,9 +51,9 @@ def download_pretrained(experiment: Experiment, url: str) -> None:
     with zipfile.ZipFile(pretrained_zip, 'r') as zip_ref:
         zip_ref.extractall(pretrained_dir)
     os.remove(pretrained_zip)
-    # copy params associated with this model to config folder
-    fu.copy_file(os.path.join(pretrained_dir, "hparams.py"),
-                 _get_hparams_path(experiment))
+    # TODO copy params associated with this model to config folder
+    # fu.copy_file(os.path.join(pretrained_dir, "hparams.py"),
+    #             _get_hparams_path(experiment))
 
 
 def create(experiment: Experiment, args) -> None:
