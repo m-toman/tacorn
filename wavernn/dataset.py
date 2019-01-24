@@ -61,8 +61,6 @@ def raw_collate(batch):
 def discrete_collate(batch):
     """collate function used for discrete wav output, such as 9-bit, mulaw-discrete, etc.
     """
-
-    print(batch[0][0].shape, batch[0][1].shape)
     pad = 2
     mel_win = hp.seq_len // hp.hop_size + 2 * pad
     # x[0] is mel spec of shape e.g. (80, len)

@@ -114,7 +114,7 @@ class Model(nn.Module):
         self.device = device
         self.rnn_dims = rnn_dims
         # TODO: perhaps drop fc_dims parameter in constructor
-        self.fc_dims = n_classes
+        self.fc_dims = self.n_classes
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims,
                                         res_blocks, res_out_dims, pad)
         self.rnn1 = nn.GRU(feat_dims + self.n_classes, rnn_dims, batch_first=True)
@@ -128,7 +128,7 @@ class Model(nn.Module):
         batch_len = x.shape[1]
 
         # one hot encode x
-        netinput = torch.Tensor(batch_size, batch_len, n_classes)
+        netinput = torch.Tensor(batch_size, batch_len, n_classes).to(self.device)
         for b in range(batch_size):
             for l in range(batch_len):
                 netinput[b, l, x[b, l]] = 1.0
@@ -139,8 +139,6 @@ class Model(nn.Module):
 
         # concat audio and mels, dimensions: (batch, time, audio-one-hot + mels)
         x = torch.cat([netinput, mels], dim=2)
-        print("x input shape: " + str(x.shape))
-
         x, _ = self.rnn1(x)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
@@ -162,30 +160,36 @@ class Model(nn.Module):
     def generate(self, mels) :
         self.eval()
         output = []
-        rnn1 = self.get_gru_cell(self.rnn1)
+        rnn1cell = self.get_gru_cell(self.rnn1)
         #rnn2 = self.get_gru_cell(self.rnn2)
+        
+        print("mels to gen: " + str(mels.shape))
 
         with torch.no_grad() :
-            x = torch.zeros(1, self.n_channels).to(self.devie)
+            x = torch.zeros(1, self.n_classes).to(self.device)
             h1 = torch.zeros(1, self.rnn_dims).to(self.device)
    
             # add batch dimension
             mels = torch.FloatTensor(mels).to(self.device).unsqueeze(0)
             mels, aux = self.upsample(mels)
+            print("mels upsampled: " + str(mels.shape))
    
             seq_len = mels.size(1)
    
             for i in tqdm(range(seq_len)) :
                 m_t = mels[:, i, :]
 
+                print("mels at time t: " + str(m_t.shape))
+                print("x input shape pre-cat: " + str(x.shape))
+                
                 x = torch.cat([x, m_t], dim=1)
 
-                x = torch.cat([netinput, mels], dim=2)
                 print("x input shape: " + str(x.shape))
 
-                x, _ = self.rnn1(x)
+                x, h1 = rnn1cell(x, h1)
                 x = F.relu(self.fc1(x))
                 x = self.fc2(x)
+                print("x: " + str(x))
 
                 if hp.input_type == 'raw':
                     if hp.distribution == 'beta':
@@ -203,7 +207,7 @@ class Model(nn.Module):
                     distrib = torch.distributions.Categorical(posterior)
                     sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
                 output.append(sample.view(-1))
-                x = torch.FloatTensor([[sample]]).cuda()
+                #x = torch.FloatTensor([[sample]]).cuda()
         output = torch.stack(output).cpu().numpy()
         self.train()
         return output

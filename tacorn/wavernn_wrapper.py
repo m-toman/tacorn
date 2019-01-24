@@ -113,7 +113,7 @@ def train(experiment: Experiment, args) -> None:
     """ Trains a Tacotron-2 model. """
     # TODO: only do conversion if necessary?
     # TODO: train from GTA or from raw?
-    convert_training_data(experiment, args)
+    #convert_training_data(experiment, args)
     features_dir = experiment.paths["wavegen_features"]
     pretrained_dir = _get_pretrained_folder(experiment)
     checkpoint_file = os.path.join(pretrained_dir, "checkpoint.pth")
