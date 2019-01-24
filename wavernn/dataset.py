@@ -34,6 +34,7 @@ def raw_collate(batch):
 
     pad = 2
     mel_win = hp.seq_len // hp.hop_size + 2 * pad
+    # x[0] is mel spec of shape e.g. (80, len)
     max_offsets = [x[0].shape[-1] - (mel_win + 2 * pad) for x in batch]
     mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
     sig_offsets = [(offset + pad) * hp.hop_size for offset in mel_offsets]
@@ -61,8 +62,13 @@ def discrete_collate(batch):
     """collate function used for discrete wav output, such as 9-bit, mulaw-discrete, etc.
     """
 
+    print(batch[0][0].shape, batch[0][1].shape)
     pad = 2
     mel_win = hp.seq_len // hp.hop_size + 2 * pad
+    # x[0] is mel spec of shape e.g. (80, len)
+    # picks the maximum number of offsets in mel spec (so len minus size of one window)
+    # then for each element in the batch, randomly select one offset
+    # sig_offset is the position in the waveform
     max_offsets = [x[0].shape[-1] - (mel_win + 2 * pad) for x in batch]
     mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
     sig_offsets = [(offset + pad) * hp.hop_size for offset in mel_offsets]
@@ -78,12 +84,14 @@ def discrete_collate(batch):
 
     mels = torch.FloatTensor(mels)
     coarse = torch.LongTensor(coarse)
-    if hp.input_type == 'bits':
-        x_input = 2 * coarse[:, :hp.seq_len].float() / (2**hp.bits - 1.) - 1.
-    elif hp.input_type == 'mulaw':
-        x_input = inv_mulaw_quantize(
-            coarse[:, :hp.seq_len], hp.mulaw_quantize_channels)
-
+    # x_input is quantized back to float range [-1.0, 1.0]
+    # we don't do this for our model
+    #if hp.input_type == 'bits':
+    #    x_input = 2 * coarse[:, :hp.seq_len].float() / (2**hp.bits - 1.) - 1.
+    #elif hp.input_type == 'mulaw':
+    #    x_input = inv_mulaw_quantize(
+    #        coarse[:, :hp.seq_len], hp.mulaw_quantize_channels)
+    x_input = coarse[:, :hp.seq_len]
     y_coarse = coarse[:, 1:]
 
     return x_input, mels, y_coarse

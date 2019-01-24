@@ -6,8 +6,10 @@ PRETRAINED_ACOUSTIC_MODELS = {
 }
 
 PRETRAINED_WAVEGEN_MODELS = {
-    "lj": {"wavernn_alt": "https://www.dropbox.com/s/ao2xxh7m665hk2r/LJ_pretrained.zip?dl=1"}
+    "lj": {"wavernn_alt": "https://www.dropbox.com/s/ao2xxh7m665hk2r/LJ_pretrained.zip?dl=1"},
+    "lj": {"wavernn": "https://www.dropbox.com/s/ao2xxh7m665hk2r/LJ_pretrained.zip?dl=1"}
 }
 
 TACOTRON2_DIR = "tacotron2"
 WAVERNNALT_DIR = "wavernn_alt"
+WAVERNN_DIR = "wavernn"

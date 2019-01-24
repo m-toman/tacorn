@@ -111,7 +111,7 @@ def train(experiment: Experiment, args) -> None:
     tacoargs.summary_interval = 250
     tacoargs.embedding_interval = 10000
     tacoargs.checkpoint_interval = 1000
-    tacoargs.eval_interval = 500
+    tacoargs.eval_interval = 1000
     tacoargs.tacotron_train_steps = int(args["acoustic_max_steps"])
     tacoargs.slack_url = None
 
