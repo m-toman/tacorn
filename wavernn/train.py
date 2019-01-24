@@ -1,222 +1,274 @@
-# coding: utf-8
+"""Training WaveRNN Model.
+
+usage: train.py [options] <data-root>
+
+options:
+    --checkpoint-dir=<dir>      Directory where to save model checkpoints [default: checkpoints].
+    --checkpoint=<path>         Restore model from checkpoint path if given.
+    -h, --help                  Show this help message and exit
+"""
 
 import os
-import matplotlib.pyplot as plt
-import math
-import pickle
-import os
+from os.path import dirname, join, expanduser
+import shutil
+
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from docopt import docopt
+from tqdm import tqdm
+import librosa
 import torch
-from torch.autograd import Variable
-from torch import optim
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from .utils import *
-from .dsp import *
-from .model import Model
-from .model import bits
+from torch import optim
+from torch.utils.data import DataLoader
 
-import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
-logger = logging.getLogger(__name__)
+from .model import build_model
+from .distributions import *
+from .loss_function import nll_loss
+from .dataset import raw_collate, discrete_collate, AudiobookDataset
+from .hyperparams import hyperparams as hp
+from .lrschedule import noam_learning_rate_decay, step_learning_rate_decay
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-class AudiobookDataset(Dataset):
-    def __init__(self, ids, path):
-        self.path = path
-        self.metadata = ids
-
-    def __getitem__(self, index):
-        file = self.metadata[index]
-        m = np.load(f'{self.path}mel/{file}.npy')
-        x = np.load(f'{self.path}quant/{file}.npy')
-        return m, x
-
-    def __len__(self):
-        return len(self.metadata)
+global_step = 0
+global_epoch = 0
+global_test_step = 0
+use_cuda = torch.cuda.is_available()
 
 
-def collate(batch):
-    pad = 2
-    mel_win = seq_len // hop_length + 2 * pad
-    max_offsets = [x[0].shape[-1] - (mel_win + 2 * pad) for x in batch]
-    mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
-    sig_offsets = [(offset + pad) * hop_length for offset in mel_offsets]
-
-    mels = [x[0][:, mel_offsets[i]:mel_offsets[i] + mel_win]
-            for i, x in enumerate(batch)]
-
-    coarse = [x[1][sig_offsets[i]:sig_offsets[i] + seq_len + 1]
-              for i, x in enumerate(batch)]
-
-    mels = np.stack(mels).astype(np.float32)
-    coarse = np.stack(coarse).astype(np.int64)
-
-    mels = torch.FloatTensor(mels)
-    coarse = torch.LongTensor(coarse)
-
-    x_input = 2 * coarse[:, :seq_len].float() / (2**bits - 1.) - 1.
-
-    y_coarse = coarse[:, 1:]
-
-    return x_input, mels, y_coarse
+def save_checkpoint(device, model, optimizer, step, checkpoint_dir, epoch):
+    checkpoint_path = join(
+        checkpoint_dir, "checkpoint_step{:09d}.pth".format(step))
+    last_checkpoint_path = join(checkpoint_dir, "checkpoint.pth")
+    optimizer_state = optimizer.state_dict()
+    global global_test_step
+    torch.save({
+        "state_dict": model.state_dict(),
+        "optimizer": optimizer_state,
+        "global_step": step,
+        "global_epoch": epoch,
+        "global_test_step": global_test_step,
+    }, checkpoint_path)
+    shutil.copyfile(checkpoint_path, last_checkpoint_path)
+    print("Saved checkpoint:", checkpoint_path)
 
 
-def _generate(model, step, test_ids, samples=3):
-    outputs = []
-    k = step // 1000
-    test_mels = [np.load(f'{DATA_PATH}mel/{id}.npy')
-                 for id in test_ids[:samples]]
-    ground_truth = [np.load(f'{DATA_PATH}quant/{id}.npy')
-                    for id in test_ids[:samples]]
-    for i, (gt, mel) in enumerate(zip(ground_truth, test_mels)):
-        print('\nGenerating: %i/%i' % (i+1, samples))
-        gt = 2 * gt.astype(np.float32) / (2**bits - 1.) - 1.
-        librosa.output.write_wav(
-            f'{GEN_PATH}{k}k_steps_{i}_target.wav', gt, sr=sample_rate)
-        outputs.append(model.generate(
-            mel, f'{GEN_PATH}{k}k_steps_{i}_generated.wav'))
-    return outputs
+def _load(checkpoint_path):
+    if use_cuda:
+        checkpoint = torch.load(checkpoint_path)
+    else:
+        checkpoint = torch.load(checkpoint_path,
+                                map_location=lambda storage, loc: storage)
+    return checkpoint
 
-# training procedure from https://github.com/fatchord/WaveRNN/blob/master/NB2%20-%20Fit%20a%20Short%20Sample.ipynb
-# def train(model, optimizer, num_steps, batch_size, seq_len=960) :
-    # start = time.time()
-    # running_loss = 0
-    
-    # for step in range(num_steps) :
-        
-    #     loss = 0
-    #     hidden = model.init_hidden(batch_size)
-    #     optimizer.zero_grad()
-    #     rand_idx = np.random.randint(0, coarse_classes.shape[1] - seq_len - 1)
-        
-    #     for i in range(seq_len) :
-            
-    #         j = rand_idx + i
-            
-    #         x_coarse = coarse_classes[:, j:j + 1]
-    #         x_fine = fine_classes[:, j:j + 1]
-    #         x_input = np.concatenate([x_coarse, x_fine], axis=1)
-    #         x_input = x_input / 127.5 - 1.
-    #         x_input = torch.FloatTensor(x_input).cuda()
-            
-    #         y_coarse = coarse_classes[:, j + 1]
-    #         y_fine = fine_classes[:, j + 1]
-    #         y_coarse = torch.LongTensor(y_coarse).cuda()
-    #         y_fine = torch.LongTensor(y_fine).cuda()
-            
-    #         current_coarse = y_coarse.float() / 127.5 - 1.
-    #         current_coarse = current_coarse.unsqueeze(-1)
-            
-    #         out_coarse, out_fine, hidden = model(x_input, hidden, current_coarse)
-            
-    #         loss_coarse = F.cross_entropy(out_coarse, y_coarse)
-    #         loss_fine = F.cross_entropy(out_fine, y_fine)
-    #         loss += (loss_coarse + loss_fine)
-        
-    #     running_loss += (loss.item() / seq_len)
-    #     loss.backward()
-    #     optimizer.step()
-        
-    #     speed = (step + 1) / (time.time() - start)
-        
-    #     stream('Step: %i/%i --- Loss: %.2f --- Speed: %.1f batches/second ',
-    #           (step + 1, num_steps, running_loss / (step + 1), speed))
 
-def _train(model, dataset, test_ids, optimiser, epochs, batch_size, classes, seq_len, step, lr=1e-4):
-    loss_threshold = 4.0
+def load_checkpoint(path, model, optimizer, reset_optimizer):
+    global global_step
+    global global_epoch
+    global global_test_step
 
-    for p in optimiser.param_groups:
-        p['lr'] = lr
-    criterion = nn.NLLLoss().to(device)
+    print("Load checkpoint from: {}".format(path))
+    checkpoint = _load(path)
+    model.load_state_dict(checkpoint["state_dict"])
+    if not reset_optimizer:
+        optimizer_state = checkpoint["optimizer"]
+        if optimizer_state is not None:
+            print("Load optimizer state from {}".format(path))
+            optimizer.load_state_dict(checkpoint["optimizer"])
+    global_step = checkpoint["global_step"]
+    global_epoch = checkpoint["global_epoch"]
+    global_test_step = checkpoint.get("global_test_step", 0)
 
-    for e in range(epochs):
-        trn_loader = DataLoader(dataset, collate_fn=collate, batch_size=batch_size,
-                                num_workers=2, shuffle=True, pin_memory=True)
+    return model
 
-        running_loss = 0.
-        val_loss = 0.
-        start = time.time()
-        running_loss = 0.
 
-        iters = len(trn_loader)
+def test_save_checkpoint():
+    checkpoint_path = "checkpoints/"
+    device = torch.device("cuda" if use_cuda else "cpu")
+    model = build_model()
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    global global_step, global_epoch, global_test_step
+    save_checkpoint(device, model, optimizer, global_step,
+                    checkpoint_path, global_epoch)
 
-        for i, (x, m, y) in enumerate(trn_loader):
-            
+    model = load_checkpoint(
+        checkpoint_path+"checkpoint_step000000000.pth", model, optimizer, False)
+
+
+def evaluate_model(model, data_loader, checkpoint_dir, limit_eval_to=5):
+    """evaluate model and save generated wav and plot
+
+    """
+    test_path = data_loader.dataset.test_path
+    test_files = os.listdir(test_path)
+    counter = 0
+    output_dir = os.path.join(checkpoint_dir, 'eval')
+    for f in test_files:
+        if f[-7:] == "mel.npy":
+            mel = np.load(os.path.join(test_path, f))
+            wav = model.generate(mel).astype(np.float32)
+            # save wav
+            wav_path = os.path.join(
+                output_dir, "checkpoint_step{:09d}_wav_{}.wav".format(global_step, counter))
+            librosa.output.write_wav(wav_path, wav, sr=hp.sample_rate)
+            # save wav plot
+            fig_path = os.path.join(
+                output_dir, "checkpoint_step{:09d}_wav_{}.png".format(global_step, counter))
+            fig = plt.plot(wav.reshape(-1))
+            plt.savefig(fig_path)
+            # clear fig to drawing to the same plot
+            plt.clf()
+            counter += 1
+        # stop evaluation early via limit_eval_to
+        if counter >= limit_eval_to:
+            break
+
+
+def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
+    """Main training loop.
+
+    """
+    # create loss and put on device
+    if hp.input_type == 'raw':
+        if hp.distribution == 'beta':
+            criterion = beta_mle_loss
+        elif hp.distribution == 'gaussian':
+            criterion = gaussian_loss
+    elif hp.input_type == 'mixture':
+        criterion = discretized_mix_logistic_loss
+    elif hp.input_type in ["bits", "mulaw"]:
+        criterion = nll_loss
+    else:
+        raise ValueError("input_type:{} not supported".format(hp.input_type))
+
+    global global_step, global_epoch, global_test_step
+    while global_epoch < hp.nepochs:
+        running_loss = 0
+        for i, (x, m, y) in enumerate(tqdm(data_loader)):
             x, m, y = x.to(device), m.to(device), y.to(device)
-
             y_hat = model(x, m)
-            y_hat = y_hat.transpose(1, 2).unsqueeze(-1)
             y = y.unsqueeze(-1)
             loss = criterion(y_hat, y)
-
-            optimiser.zero_grad()
+            # calculate learning rate and update learning rate
+            if hp.fix_learning_rate:
+                current_lr = hp.fix_learning_rate
+            elif hp.lr_schedule_type == 'step':
+                current_lr = step_learning_rate_decay(
+                    hp.initial_learning_rate, global_step, hp.step_gamma, hp.lr_step_interval)
+            else:
+                current_lr = noam_learning_rate_decay(
+                    hp.initial_learning_rate, global_step, hp.noam_warm_up_steps)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = current_lr
+            optimizer.zero_grad()
             loss.backward()
-            optimiser.step()
+            # clip gradient norm
+            nn.utils.clip_grad_norm_(model.parameters(), hp.grad_norm)
+            optimizer.step()
+
             running_loss += loss.item()
+            avg_loss = running_loss / (i+1)
+            # saving checkpoint if needed
+            if global_step != 0 and global_step % hp.save_every_step == 0:
+                save_checkpoint(device, model, optimizer,
+                                global_step, checkpoint_dir, global_epoch)
+            # evaluate model if needed
+            if global_step != 0 and global_test_step != True and global_step % hp.evaluate_every_step == 0:
+                print("step {}, evaluating model: generating wav from mel...".format(
+                    global_step))
+                evaluate_model(model, data_loader, checkpoint_dir)
+                print("evaluation finished, resuming training...")
 
-            speed = (i + 1) / (time.time() - start)
-            avg_loss = running_loss / (i + 1)
+            # reset global_test_step status after evaluation
+            if global_test_step is True:
+                global_test_step = False
+            global_step += 1
 
-            step += 1
-            k = step // 1000
-            print('Epoch: %i/%i -- Batch: %i/%i -- Loss: %.3f -- Speed: %.2f steps/sec -- Step: %ik ' %
-                  (e + 1, epochs, i + 1, iters, avg_loss, speed, k))
-
-        # generate sample
-        if e % 20 == 0:
-            _generate(model=model, step=step, test_ids=test_ids, samples=1)
-
-        torch.save(model.state_dict(), MODEL_PATH)
-        np.save(STEP_PATH, [step])
-        print(' <saved>')
-
-
-def prepare_workdir(cfg):
-    if not os.path.exists(model_checkpoints):
-        os.makedirs(model_checkpoints)
-
-    if not os.path.exists(GEN_PATH):
-        os.makedirs(GEN_PATH)
-
-def train(cfg):
-    prepare_workdir(cfg)
-
-    # load dataset
-    with open(f'{DATA_PATH}dataset_ids.pkl', 'rb') as f:
-        dataset_ids = pickle.load(f)
-
-    test_ids = dataset_ids[-50:]
-    dataset_ids = dataset_ids[:-50]
-    dataset = AudiobookDataset(dataset_ids, DATA_PATH)
-    data_loader = DataLoader(dataset, collate_fn=collate, batch_size=32,
-                             num_workers=0, shuffle=True)
-    logger.info("Dataset length: " + str(len(dataset)))
-
-    x, m, y = next(iter(data_loader))
-    logger.debug("x.shape: %s, m.shape: %s, y.shape: %s" % (str(x.shape), str(m.shape), str(y.shape)))
-
-    model = Model(hidden_size=896, quantisation=256)
-
-    # Load existing weights
-    if not os.path.exists(MODEL_PATH):
-        logger.debug("Creating new initial model")
-        torch.save(model.state_dict(), MODEL_PATH)
-    logger.debug("Loading model from " + MODEL_PATH)
-    model.load_state_dict(torch.load(MODEL_PATH))
-
-    step = 0
-    if not os.path.exists(STEP_PATH):
-        np.save(STEP_PATH, [step])
-    step = np.load(STEP_PATH)[0]
-    logger.info("Starting from step: " + str(step))
-
-    optimiser = optim.Adam(model.parameters())
-    _train(model, dataset, test_ids, optimiser, epochs=1000, batch_size=16, classes=2**bits,
-           seq_len=seq_len, step=step, lr=1e-4)
+        print("epoch:{}, running loss:{}, average loss:{}, current lr:{}".format(
+            global_epoch, running_loss, avg_loss, current_lr))
+        global_epoch += 1
 
 
-if __name__ == '__main__':
-    train(None)
+def main(data_root, checkpoint_dir, checkpoint_path):
+    # make dirs, load dataloader and set up device
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    os.makedirs(os.path.join(checkpoint_dir, 'eval'), exist_ok=True)
+    dataset = AudiobookDataset(data_root)
+    if hp.input_type == 'raw':
+        collate_fn = raw_collate
+    elif hp.input_type == 'mixture':
+        collate_fn = raw_collate
+    elif hp.input_type in ['bits', 'mulaw']:
+        collate_fn = discrete_collate
+    else:
+        raise ValueError("input_type:{} not supported".format(hp.input_type))
+    data_loader = DataLoader(dataset, collate_fn=collate_fn, shuffle=True, num_workers=int(
+        hp.num_workers), batch_size=hp.batch_size)
+    device = torch.device("cuda" if use_cuda else "cpu")
+    print("using device:{}".format(device))
+
+    # build model, create optimizer
+    model = build_model().to(device)
+    optimizer = optim.Adam(model.parameters(),
+                           lr=hp.initial_learning_rate, betas=(
+        hp.adam_beta1, hp.adam_beta2),
+        eps=hp.adam_eps, weight_decay=hp.weight_decay,
+        amsgrad=hp.amsgrad)
+
+    if hp.fix_learning_rate:
+        print("using fixed learning rate of :{}".format(hp.fix_learning_rate))
+    elif hp.lr_schedule_type == 'step':
+        print("using exponential learning rate decay")
+    elif hp.lr_schedule_type == 'noam':
+        print("using noam learning rate decay")
+
+    # load checkpoint
+    if checkpoint_path is None:
+        print("no checkpoint specified as --checkpoint argument, creating new model...")
+    else:
+        model = load_checkpoint(checkpoint_path, model, optimizer, False)
+        print("loading model from checkpoint:{}".format(checkpoint_path))
+        # set global_test_step to True so we don't evaluate right when we load in the model
+        global_test_step = True
+
+    # main train loop
+    try:
+        train_loop(device, model, data_loader, optimizer, checkpoint_dir)
+    except KeyboardInterrupt:
+        print("Interrupted!")
+        pass
+    finally:
+        print("saving model....")
+        save_checkpoint(device, model, optimizer, global_step,
+                        checkpoint_dir, global_epoch)
+
+
+if __name__ == "__main__":
+    args = docopt(__doc__)
+    #print("Command line args:\n", args)
+    checkpoint_dir = args["--checkpoint-dir"]
+    checkpoint_path = args["--checkpoint"]
+    data_root = args["<data-root>"]
+    main(data_root, checkpoint_dir, checkpoint_path)
+
+
+def test_eval():
+    data_root = "data_dir"
+    dataset = AudiobookDataset(data_root)
+    if hp.input_type == 'raw':
+        collate_fn = raw_collate
+    elif hp.input_type == 'bits':
+        collate_fn = discrete_collate
+    else:
+        raise ValueError("input_type:{} not supported".format(hp.input_type))
+    data_loader = DataLoader(dataset, collate_fn=collate_fn,
+                             shuffle=True, num_workers=0, batch_size=hp.batch_size)
+    device = torch.device("cuda" if use_cuda else "cpu")
+    print("using device:{}".format(device))
+
+    # build model, create optimizer
+    model = build_model().to(device)
+
+    evaluate_model(model, data_loader)

@@ -1,0 +1,5 @@
+docopt
+librosa
+nnmnkwii
+tqdm
+lws

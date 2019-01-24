@@ -1,133 +1,120 @@
+"""
+Preprocess dataset
 
-# coding: utf-8
+usage: preproess.py [options] <wav-dir>
 
-# Conversion of nb5a notebook from https://github.com/fatchord/WaveRNN
+options:
+     --output-dir=<dir>      Directory where processed outputs are saved. [default: data_dir].
+    -h, --help              Show help message.
+"""
+import os
+import math
+import pickle
 
-# ## Alternative Model (Preprocessing)
-# You need to run this before you run notebook 5b.
-# 
-# The wavs in your dataset will be converted to 9bit linear and 80-band mels.
-
-# In[1]:
-
-import matplotlib.pyplot as plt
-import math, pickle, os, glob
 import numpy as np
+from docopt import docopt
+from tqdm import tqdm
+
+from .audio import *
+from .hyperparams import hyperparams as hp
 from .utils import *
-from .dsp import *
-
-bits = 9
-model_name = 'tacorn_wavernn'
-
-DATA_PATH = f'data/{model_name}/'
-
-if not os.path.exists(DATA_PATH):
-    os.makedirs(DATA_PATH)
-
-GTA = True
-
-if not GTA:
-    # Point SEG_PATH to a folder containing your training wavs 
-    # Doesn't matter if it's LJspeech, CMU Arctic etc. it should work fine
-    SEG_PATH = 'TODO' 
-
-    def get_files(path, extension='.wav') :
-        filenames = []
-        for filename in glob.iglob(f'{path}/**/*{extension}', recursive=True):
-            filenames += [filename]
-        return sorted(filenames)
-
-    wav_files = get_files(SEG_PATH)
-    print(len(wav_files))
-
-    def convert_file(path) :
-        wav = load_wav(path, encode=False)
-        mel = melspectrogram(wav)
-        quant = (wav + 1.) * (2**bits - 1) / 2
-        return mel.astype(np.float32), quant.astype(np.int)
 
 
-    m, x = convert_file(wav_files[0])
-    wav_files[0]
+def get_wav_mel(path):
+    """Given path to .wav file, get the quantized wav and mel spectrogram as numpy vectors
 
-    #plot_spec(m)
-    #plot(x)
+    """
+    wav = load_wav(path)
+    mel = melspectrogram(wav)
+    if hp.input_type == 'raw':
+        return wav.astype(np.float32), mel
+    elif hp.input_type == 'mulaw':
+        quant = mulaw_quantize(wav, hp.mulaw_quantize_channels)
+        return quant.astype(np.int), mel
+    elif hp.input_type == 'bits':
+        quant = quantize(wav)
+        return quant.astype(np.int), mel
+    else:
+        raise ValueError(
+            "hp.input_type {} not recognized".format(hp.input_type))
 
-    x = 2 * x / (2**bits - 1) - 1
 
-    librosa.output.write_wav(DATA_PATH + 'test_quant.wav', x, sr=sample_rate)
+def get_wav(path):
+    wav = load_wav(path)
+    if hp.input_type == 'raw':
+        return wav.astype(np.float32)
+    elif hp.input_type == 'mulaw':
+        quant = mulaw_quantize(wav, hp.mulaw_quantize_channels)
+        return quant.astype(np.int)
+    elif hp.input_type == 'bits':
+        quant = quantize(wav)
+        return quant.astype(np.int)
+    else:
+        raise ValueError(
+            "hp.input_type {} not recognized".format(hp.input_type))
 
 
-    QUANT_PATH = DATA_PATH + 'quant/'
-    MEL_PATH = DATA_PATH + 'mel/'
-    if not os.path.exists(QUANT_PATH):
-        os.makedirs(QUANT_PATH)
-    if not os.path.exists(MEL_PATH):
-        os.makedirs(MEL_PATH)
-
-    print(wav_files[0].split('/')[-1][:-4])
-
-    # This will take a while depending on size of dataset
+def process_data(wav_dir, output_path, mel_path, wav_path):
+    """
+    given wav directory and output directory, process wav files and save quantized wav and mel
+    spectrogram to output directory
+    """
     dataset_ids = []
-    for i, path in enumerate(wav_files) :
-        id = path.split('/')[-1][:-4]
-        dataset_ids += [id]
-        m, x = convert_file(path)
-        np.save(f'{MEL_PATH}{id}.npy', m)
-        np.save(f'{QUANT_PATH}{id}.npy', x)
-        print('%i/%i' % (i + 1, len(wav_files)))
+    # get list of wav files
+    wav_files = os.listdir(wav_dir)
+    # check wav_file
+    assert len(
+        wav_files) != 0 or wav_files[0][-4:] == '.wav', "no wav files found!"
+    # create training and testing splits
+    test_wav_files = wav_files[:4]
+    wav_files = wav_files[4:]
+    for i, wav_file in enumerate(tqdm(wav_files)):
+        # get the file id
+        file_id = '{:d}'.format(i).zfill(5)
+        wav, mel = get_wav_mel(os.path.join(wav_dir, wav_file))
+        # save
+        np.save(os.path.join(mel_path, file_id+".npy"), mel)
+        np.save(os.path.join(wav_path, file_id+".npy"), wav)
+        # add to dataset_ids
+        dataset_ids.append(file_id)
 
-    with open(DATA_PATH + 'dataset_ids.pkl', 'wb') as f:
+    # save dataset_ids
+    with open(os.path.join(output_path, 'dataset_ids.pkl'), 'wb') as f:
         pickle.dump(dataset_ids, f)
 
-# GTA processing
-else:
-    AUDIO_PATH = "tacotron2/training_data/audio/"
-    GTA_MEL_PATH = "tacotron2/tacotron_output/gta/"
+    # process testing_wavs
+    test_path = os.path.join(output_path, 'test')
+    os.makedirs(test_path, exist_ok=True)
+    for i, wav_file in enumerate(test_wav_files):
+        wav, mel = get_wav_mel(os.path.join(wav_dir, wav_file))
+        # save test_wavs
+        np.save(os.path.join(test_path, "test_{}_mel.npy".format(i)), mel)
+        np.save(os.path.join(test_path, "test_{}_wav.npy".format(i)), wav)
 
-    def get_files(path, extension='.wav') :
-        filenames = []
-        for filename in glob.iglob(f'{path}/**/*{extension}', recursive=True):
-            filenames += [filename]
-        return sorted(filenames)
+    print("\npreprocessing done, total processed wav files:{}.\nProcessed files are located in:{}".format(
+        len(wav_files), os.path.abspath(output_path)))
 
-    audio_files = get_files(AUDIO_PATH, extension=".npy")
-    mel_files = get_files(GTA_MEL_PATH, extension=".npy")
-    #print ((audio_files[0].split('/')[-1][:-4], mel_files[0].split('/')[-1][:-4]))
 
-    def convert_gta_mel(mel_path):
-        mel = np.load(mel_path).T
-        return mel.astype(np.float32)
+if __name__ == "__main__":
+    args = docopt(__doc__)
+    wav_dir = args["<wav-dir>"]
+    output_dir = args["--output-dir"]
 
-    def convert_gta_audio(audio_path):
-        audio = np.load(audio_path)
-        quant = (audio + 1.) * (2**bits - 1) / 2
-        return quant.astype(np.int)
+    # create paths
+    output_path = os.path.join(output_dir, "")
+    mel_path = os.path.join(output_dir, "mel")
+    wav_path = os.path.join(output_dir, "wav")
 
-    #m, x = convert_gta_file(audio_files[0], mel_files[0])
-    #plot_spec(m)
-    #plot(x)
+    # create dirs
+    os.makedirs(output_path, exist_ok=True)
+    os.makedirs(mel_path, exist_ok=True)
+    os.makedirs(wav_path, exist_ok=True)
 
-    QUANT_PATH = DATA_PATH + 'quant/'
-    MEL_PATH = DATA_PATH + 'mel/'
-    if not os.path.exists(QUANT_PATH):
-        os.makedirs(QUANT_PATH)
-    if not os.path.exists(MEL_PATH):
-        os.makedirs(MEL_PATH)
+    # process data
+    process_data(wav_dir, output_path, mel_path, wav_path)
 
-    # This will take a while depending on size of dataset
-    dataset_ids = []
-    for i, path in enumerate(zip(audio_files, mel_files)):
-        audio_id = path[0].split('/')[-1][6:-4]
-        mel_id = path[1].split('/')[-1][4:-4]
-        assert(mel_id == audio_id)
-        dataset_ids += [audio_id]
-        x = convert_gta_audio(path[0])
-        m = convert_gta_mel(path[1])
-        np.save(f'{QUANT_PATH}{audio_id}.npy', x)
-        np.save(f'{MEL_PATH}{mel_id}.npy', m)
-        print('%i/%i : audio: %s mel: %s' % (i + 1, len(audio_files), audio_id, mel_id))
-    dataset_ids_unique = list(set(dataset_ids))
 
-    with open(DATA_PATH + 'dataset_ids.pkl', 'wb') as f:
-        pickle.dump(dataset_ids_unique, f)
+def test_get_wav_mel():
+    wav, mel = get_wav_mel('sample.wav')
+    print(wav.shape, mel.shape)
+    print(wav)
