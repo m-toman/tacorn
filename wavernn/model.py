@@ -11,6 +11,20 @@ from .utils import num_params, mulaw_quantize, inv_mulaw_quantize
 
 #TODO: clean this mess
 #TODO: remove all "cuda" calls and replace with device
+def encode_one_hot(x, n_classes):
+    batch_size = x.shape[0]
+    batch_len = x.shape[1]
+
+    encoded = torch.Tensor(batch_size, batch_len, n_classes)
+    for b in range(batch_size):
+        for l in range(batch_len):
+            encoded[b, l, x[b, l]] = 1.0
+    return encoded
+
+
+def decode_one_hot(x):
+    return torch.argmax(x, dim=2)
+
 
 class ResBlock(nn.Module):
     def __init__(self, dims):
@@ -121,17 +135,14 @@ class Model(nn.Module):
         self.fc1 = nn.Linear(rnn_dims, self.fc_dims)
         self.fc2 = nn.Linear(self.fc_dims, self.n_classes)
         num_params(self)
-
+        
     def forward(self, x, mels):
         batch_size = x.shape[0]
         n_classes = self.n_classes
         batch_len = x.shape[1]
 
         # one hot encode x
-        netinput = torch.Tensor(batch_size, batch_len, n_classes).to(self.device)
-        for b in range(batch_size):
-            for l in range(batch_len):
-                netinput[b, l, x[b, l]] = 1.0
+        netinput = encode_one_hot(x, n_classes).to(self.device)
         
         #h1 = torch.zeros(1, batch_size, self.rnn_dims).to(self.device)
         # upsample mels to fit audio input
@@ -143,15 +154,14 @@ class Model(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
 
-        return x
-        #if hp.input_type == 'raw':
-        #    return x
-        #elif hp.input_type == 'mixture':
-        #    return x
-        #elif hp.input_type == 'bits' or hp.input_type == 'mulaw':
-        #    return F.log_softmax(x, dim=-1)
-        #else:
-        #    raise ValueError("input_type: {hp.input_type} not supported")
+        if hp.input_type == 'raw':
+            return x
+        elif hp.input_type == 'mixture':
+            return x
+        elif hp.input_type == 'bits' or hp.input_type == 'mulaw':
+            return F.log_softmax(x, dim=-1)
+        else:
+            raise ValueError("input_type: {hp.input_type} not supported")
 
     def preview_upsampling(self, mels):
         mels, aux = self.upsample(mels)
@@ -179,17 +189,17 @@ class Model(nn.Module):
             for i in tqdm(range(seq_len)) :
                 m_t = mels[:, i, :]
 
-                print("mels at time t: " + str(m_t.shape))
                 print("x input shape pre-cat: " + str(x.shape))
                 
                 x = torch.cat([x, m_t], dim=1)
 
                 print("x input shape: " + str(x.shape))
 
-                x, h1 = rnn1cell(x, h1)
+                x = rnn1cell(x, h1)
+                h1 = x
                 x = F.relu(self.fc1(x))
                 x = self.fc2(x)
-                print("x: " + str(x))
+                print("x input shape after fc2: " + str(x.shape))
 
                 if hp.input_type == 'raw':
                     if hp.distribution == 'beta':
@@ -207,6 +217,8 @@ class Model(nn.Module):
                     distrib = torch.distributions.Categorical(posterior)
                     sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
                 output.append(sample.view(-1))
+                print("posterior: " + str(posterior.shape))
+                x = posterior.unsqueeze(0)
                 #x = torch.FloatTensor([[sample]]).cuda()
         output = torch.stack(output).cpu().numpy()
         self.train()

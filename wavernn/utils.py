@@ -1,6 +1,22 @@
 import numpy as np
 import torch
 
+def plot_train_inout(x, mels, y, y_hat, fig_path):
+    import matplotlib.pyplot as plt
+    batch = 0
+    f, axarr = plt.subplots(4, 1)
+    axarr[0].plot(x[batch].cpu().numpy())
+    axarr[0].set_title('Original input audio')
+    axarr[1].imshow(mels[batch].cpu().numpy().T)
+    axarr[1].set_title('Original input mel spec')
+    axarr[2].plot(y[batch].cpu().numpy())
+    axarr[2].set_title('Original output audio')
+    axarr[3].plot(y_hat[batch].cpu().numpy())
+    axarr[3].set_title('Predicted output audio')
+    plt.tight_layout()
+    plt.savefig(fig_path)
+    
+
 def num_params_count(model):
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     parameters = sum([np.prod(p.size()) for p in parameters]) / 1000000

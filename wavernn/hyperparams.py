@@ -4,6 +4,9 @@ import tensorflow as tf
 hyperparams = tf.contrib.training.HParams(
     name="WaveRNN",
     num_workers=8,
+    plot_debug=True,
+    plot_debug_every_step=500,
+    
     # Input type:
     # 1. raw [-1, 1]
     # 2. mixture [-1, 1]
@@ -62,8 +65,8 @@ hyperparams = tf.contrib.training.HParams(
     # training parameters
     batch_size=32,
     nepochs=5000,
-    save_every_step=30,
-    evaluate_every_step=30,
+    save_every_step=1000,
+    evaluate_every_step=1000,
     # seq_len_factor can be adjusted to increase training sequence length (will increase GPU usage)
     seq_len_factor=5,
 

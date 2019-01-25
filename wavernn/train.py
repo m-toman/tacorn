@@ -25,12 +25,13 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from .model import build_model
+from .model import build_model, encode_one_hot, decode_one_hot
 from .distributions import *
 from .loss_function import nll_loss
 from .dataset import raw_collate, discrete_collate, AudiobookDataset
 from .hyperparams import hyperparams as hp
 from .lrschedule import noam_learning_rate_decay, step_learning_rate_decay
+from .utils import plot_train_inout
 
 global_step = 0
 global_epoch = 0
@@ -150,6 +151,13 @@ def train_loop(device, model, data_loader, optimizer, checkpoint_dir):
             x, m, y = x.to(device), m.to(device), y.to(device)
             y_hat = model(x, m)
             y = y.unsqueeze(-1)
+            
+            if hp.plot_debug and global_step % hp.plot_debug_every_step == 0:
+                output_dir = os.path.join(checkpoint_dir, 'eval')
+                fig_path = os.path.join(
+                    output_dir, "checkpoint_step{:09d}_iodebug.png".format(global_step))
+                plot_train_inout(x, m, y, decode_one_hot(y_hat), fig_path)
+            
             loss = criterion(y_hat, y)
             # calculate learning rate and update learning rate
             if hp.fix_learning_rate:
