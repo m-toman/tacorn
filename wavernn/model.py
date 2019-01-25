@@ -78,15 +78,34 @@ class Stretch2d(nn.Module):
         return x.view(b, c, h * self.y_scale, w * self.x_scale)
 
 
+class MelConditionNetwork(nn.Module):
+    def __init__(self, input_dim, rnn_dim, rnn_num_layers):
+        super().__init__()
+        self.input_dim = input_dim
+        self.rnn_dim = rnn_dim
+        self.rnn_num_layers = rnn_num_layers
+        
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=rnn_dim,
+                          num_layers=rnn_num_layers, batch_first=True,
+                          bidirectional=True)
+        
+    def forward(self, m):
+        # TODO: do this once and modify upsample network
+        m = m.transpose(1,2)
+        m, _ = self.rnn(m)
+        return m.transpose(1,2)
+        
+        
+
 class UpsampleNetwork(nn.Module):
     def __init__(self, feat_dims, upsample_scales, compute_dims,
                  res_blocks, res_out_dims, pad):
         super().__init__()
         total_scale = np.cumproduct(upsample_scales)[-1]
         self.indent = pad * total_scale
-        self.resnet = MelResNet(res_blocks, feat_dims,
-                                compute_dims, res_out_dims)
-        self.resnet_stretch = Stretch2d(total_scale, 1)
+        #self.resnet = MelResNet(res_blocks, feat_dims,
+        #                        compute_dims, res_out_dims)
+        #self.resnet_stretch = Stretch2d(total_scale, 1)
         self.up_layers = nn.ModuleList()
         for scale in upsample_scales:
             k_size = (1, scale * 2 + 1)
@@ -99,14 +118,14 @@ class UpsampleNetwork(nn.Module):
             self.up_layers.append(conv)
 
     def forward(self, m):
-        aux = self.resnet(m).unsqueeze(1)
-        aux = self.resnet_stretch(aux)
-        aux = aux.squeeze(1)
+        #aux = self.resnet(m).unsqueeze(1)
+        #aux = self.resnet_stretch(aux)
+        #aux = aux.squeeze(1)
         m = m.unsqueeze(1)
         for f in self.up_layers:
             m = f(m)
         m = m.squeeze(1)[:, :, self.indent:-self.indent]
-        return m.transpose(1, 2), aux.transpose(1, 2)
+        return m.transpose(1, 2)#, aux.transpose(1, 2)
 
 
 class Model(nn.Module):
@@ -127,11 +146,13 @@ class Model(nn.Module):
             
         self.device = device
         self.rnn_dims = rnn_dims
+        self.rnn_cond_dims = 128
         # TODO: perhaps drop fc_dims parameter in constructor
         self.fc_dims = self.n_classes
+        self.melcond = MelConditionNetwork(feat_dims, self.rnn_cond_dims, 2)
         self.upsample = UpsampleNetwork(feat_dims, upsample_factors, compute_dims,
                                         res_blocks, res_out_dims, pad)
-        self.rnn1 = nn.GRU(feat_dims + self.n_classes, rnn_dims, batch_first=True)
+        self.rnn1 = nn.GRU(2 * self.rnn_cond_dims + self.n_classes, rnn_dims, batch_first=True)
         self.fc1 = nn.Linear(rnn_dims, self.fc_dims)
         self.fc2 = nn.Linear(self.fc_dims, self.n_classes)
         num_params(self)
@@ -146,7 +167,11 @@ class Model(nn.Module):
         
         #h1 = torch.zeros(1, batch_size, self.rnn_dims).to(self.device)
         # upsample mels to fit audio input
-        mels, aux = self.upsample(mels)
+        #print("mels shape 1: " + str(mels.shape))
+        mels = self.melcond(mels)
+        #print("mels shape 2: " + str(mels.shape))       
+        mels = self.upsample(mels)
+        #print("mels shape 3: " + str(mels.shape))      
 
         # concat audio and mels, dimensions: (batch, time, audio-one-hot + mels)
         x = torch.cat([netinput, mels], dim=2)
@@ -181,7 +206,8 @@ class Model(nn.Module):
    
             # add batch dimension
             mels = torch.FloatTensor(mels).to(self.device).unsqueeze(0)
-            mels, aux = self.upsample(mels)
+            mels = self.melcond(mels)
+            mels = self.upsample(mels)
             print("mels upsampled: " + str(mels.shape))
    
             seq_len = mels.size(1)
@@ -189,17 +215,17 @@ class Model(nn.Module):
             for i in tqdm(range(seq_len)) :
                 m_t = mels[:, i, :]
 
-                print("x input shape pre-cat: " + str(x.shape))
+                #print("x input shape pre-cat: " + str(x.shape))
                 
                 x = torch.cat([x, m_t], dim=1)
 
-                print("x input shape: " + str(x.shape))
+                #print("x input shape: " + str(x.shape))
 
                 x = rnn1cell(x, h1)
                 h1 = x
                 x = F.relu(self.fc1(x))
                 x = self.fc2(x)
-                print("x input shape after fc2: " + str(x.shape))
+                #print("x input shape after fc2: " + str(x.shape))
 
                 if hp.input_type == 'raw':
                     if hp.distribution == 'beta':
@@ -217,8 +243,15 @@ class Model(nn.Module):
                     distrib = torch.distributions.Categorical(posterior)
                     sample = inv_mulaw_quantize(distrib.sample(), hp.mulaw_quantize_channels, True)
                 output.append(sample.view(-1))
-                print("posterior: " + str(posterior.shape))
-                x = posterior.unsqueeze(0)
+                
+                #print ("argmax shape: " + str(torch.argmax(x, dim=1).shape))
+                idx = torch.argmax(x, dim=1)[0]
+                new_x = torch.zeros_like(x)
+                new_x[0][idx] = 1.0
+                x = new_x
+                #print("posterior: " + str(posterior.shape))
+                #x = posterior.unsqueeze(0)
+                #x = encode_one_hot(torch.argmax(x.cpu(), dim=1).unsqueeze(0), self.n_classes).squeeze(0).to(self.device)
                 #x = torch.FloatTensor([[sample]]).cuda()
         output = torch.stack(output).cpu().numpy()
         self.train()
