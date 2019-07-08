@@ -1,6 +1,6 @@
-# tacorn
+WARNING: This repository was an experiment and is not maintained anymore.
 
-WARNING: Currently only supports Griffin-Lim synthesis from the Tacotron-2 repository.
+# tacorn
 
 TTS framework bridging different 2018/2019 state-of-the-art open source methods.
 Currently aims to combine the Tacotron-2 implementation by Rayhane-mamah (https://github.com/Rayhane-mamah/Tacotron-2) with a fork of the alternative WaveRNN implementation by fatchord (https://github.com/fatchord/WaveRNN).
