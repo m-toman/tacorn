@@ -1,4 +1,6 @@
-WARNING: This repository was an experiment and is not maintained anymore.
+# Deprectation
+
+As the world of speech synthesis moved on I would recommend checking more recent methods and frameworks.
 
 # tacorn
 
